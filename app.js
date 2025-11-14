@@ -55,6 +55,68 @@ function updateMotionValues() {
     document.getElementById('distance-traveled').textContent = Math.abs(s).toFixed(2);
 
     drawMotionGraph();
+    showAreaCalculation(u, v, t, s);
+}
+
+function showAreaCalculation(u, v, t, s) {
+    const calculationDiv = document.getElementById('area-calculation');
+    const stepsDiv = document.getElementById('calculation-steps');
+
+    if (!calculationDiv || !stepsDiv) return;
+
+    // Show the calculation box
+    calculationDiv.style.display = 'block';
+
+    // Build the explanation
+    let html = '<div style="line-height: 1.8;">';
+
+    html += '<p style="margin: 5px 0;"><strong>Key Principle:</strong> The area under a velocity-time graph represents the distance traveled.</p>';
+
+    // Determine the shape
+    if (u === 0) {
+        // Triangle shape
+        html += '<p style="margin: 10px 0;"><strong>Shape:</strong> Triangle (starting from rest)</p>';
+        html += '<div style="background: white; padding: 12px; border-radius: 5px; margin: 10px 0;">';
+        html += '<p style="margin: 5px 0;"><strong>Formula for Triangle:</strong></p>';
+        html += `<p style="margin: 5px 0; font-family: monospace; font-size: 16px;">Area = ½ × base × height</p>`;
+        html += `<p style="margin: 5px 0; font-family: monospace; font-size: 16px;">Area = ½ × ${t} s × ${v.toFixed(2)} m/s</p>`;
+        html += `<p style="margin: 5px 0; font-family: monospace; font-size: 16px;">Area = ${(0.5 * t * v).toFixed(2)} m</p>`;
+        html += '</div>';
+    } else if (Math.abs(v - u) < 0.01) {
+        // Rectangle shape (constant velocity)
+        html += '<p style="margin: 10px 0;"><strong>Shape:</strong> Rectangle (constant velocity)</p>';
+        html += '<div style="background: white; padding: 12px; border-radius: 5px; margin: 10px 0;">';
+        html += '<p style="margin: 5px 0;"><strong>Formula for Rectangle:</strong></p>';
+        html += `<p style="margin: 5px 0; font-family: monospace; font-size: 16px;">Area = length × width</p>`;
+        html += `<p style="margin: 5px 0; font-family: monospace; font-size: 16px;">Area = ${t} s × ${u.toFixed(2)} m/s</p>`;
+        html += `<p style="margin: 5px 0; font-family: monospace; font-size: 16px;">Area = ${(t * u).toFixed(2)} m</p>`;
+        html += '</div>';
+    } else {
+        // Trapezoid shape
+        html += '<p style="margin: 10px 0;"><strong>Shape:</strong> Trapezoid (changing velocity)</p>';
+        html += '<div style="background: white; padding: 12px; border-radius: 5px; margin: 10px 0;">';
+        html += '<p style="margin: 5px 0;"><strong>Method 1 - Trapezoid Formula:</strong></p>';
+        html += `<p style="margin: 5px 0; font-family: monospace; font-size: 16px;">Area = ½ × (u + v) × t</p>`;
+        html += `<p style="margin: 5px 0; font-family: monospace; font-size: 16px;">Area = ½ × (${u.toFixed(2)} + ${v.toFixed(2)}) × ${t}</p>`;
+        html += `<p style="margin: 5px 0; font-family: monospace; font-size: 16px;">Area = ½ × ${(u + v).toFixed(2)} × ${t}</p>`;
+        html += `<p style="margin: 5px 0; font-family: monospace; font-size: 16px;">Area = ${(0.5 * (u + v) * t).toFixed(2)} m</p>`;
+        html += '</div>';
+
+        html += '<div style="background: white; padding: 12px; border-radius: 5px; margin: 10px 0;">';
+        html += '<p style="margin: 5px 0;"><strong>Method 2 - Rectangle + Triangle:</strong></p>';
+        html += `<p style="margin: 5px 0;">Rectangle area = ${u.toFixed(2)} × ${t} = ${(u * t).toFixed(2)} m</p>`;
+        html += `<p style="margin: 5px 0;">Triangle area = ½ × ${t} × ${(v - u).toFixed(2)} = ${(0.5 * t * (v - u)).toFixed(2)} m</p>`;
+        html += `<p style="margin: 5px 0; font-weight: bold;">Total area = ${(u * t).toFixed(2)} + ${(0.5 * t * (v - u)).toFixed(2)} = ${s.toFixed(2)} m</p>`;
+        html += '</div>';
+    }
+
+    html += '<div style="background: #d4edda; padding: 10px; border-radius: 5px; margin-top: 10px; border: 2px solid #28a745;">';
+    html += `<p style="margin: 5px 0; font-weight: bold; color: #155724;">✓ Distance Traveled = ${Math.abs(s).toFixed(2)} m</p>`;
+    html += '</div>';
+
+    html += '</div>';
+
+    stepsDiv.innerHTML = html;
 }
 
 function drawMotionGraph() {
@@ -71,6 +133,34 @@ function drawMotionGraph() {
     const u = parseFloat(document.getElementById('initial-velocity')?.value || 0);
     const a = parseFloat(document.getElementById('acceleration')?.value || 0);
     const maxTime = parseFloat(document.getElementById('time-range')?.value || 10);
+
+    // Calculate display parameters
+    const maxV = Math.max(Math.abs(u), Math.abs(u + a * maxTime), 20);
+    const scale = (height - 100) / (2 * maxV);
+    const timeScale = (width - 80) / maxTime;
+
+    // Draw shaded area under graph (if animation completed or not animating)
+    if (!isMotionAnimating || motionTime >= maxTime) {
+        ctx.fillStyle = 'rgba(52, 152, 219, 0.2)';
+        ctx.beginPath();
+        ctx.moveTo(50, height - 50); // Start at origin
+
+        for (let t = 0; t <= maxTime; t += 0.1) {
+            const v = u + a * t;
+            const x = 50 + t * timeScale;
+            const y = height - 50 - v * scale;
+            ctx.lineTo(x, y);
+        }
+
+        ctx.lineTo(50 + maxTime * timeScale, height - 50); // Close to x-axis
+        ctx.closePath();
+        ctx.fill();
+
+        // Add text on shaded area
+        ctx.fillStyle = '#2c3e50';
+        ctx.font = 'bold 14px Arial';
+        ctx.fillText('Area = Distance', width / 2 - 50, height / 2);
+    }
 
     // Draw axes
     ctx.strokeStyle = '#2c3e50';
@@ -113,11 +203,6 @@ function drawMotionGraph() {
     ctx.strokeStyle = '#3498db';
     ctx.lineWidth = 3;
     ctx.beginPath();
-
-    const maxV = Math.max(Math.abs(u), Math.abs(u + a * maxTime), 20);
-    const scale = (height - 100) / (2 * maxV);
-    const timeScale = (width - 80) / maxTime;
-    const zeroY = height - 50 - u * scale;
 
     for (let t = 0; t <= maxTime; t += 0.1) {
         const v = u + a * t;
@@ -173,6 +258,9 @@ function toggleAnimation() {
     isMotionAnimating = !isMotionAnimating;
     if (isMotionAnimating) {
         motionTime = 0;
+        // Hide calculation during animation
+        const calculationDiv = document.getElementById('area-calculation');
+        if (calculationDiv) calculationDiv.style.display = 'none';
         animateMotion();
     }
 }
@@ -191,6 +279,16 @@ function animateMotion() {
     } else {
         isMotionAnimating = false;
         motionTime = 0;
+
+        // Show area calculation when animation completes
+        const u = parseFloat(document.getElementById('initial-velocity')?.value || 0);
+        const a = parseFloat(document.getElementById('acceleration')?.value || 0);
+        const t = maxTime;
+        const v = u + a * t;
+        const s = u * t + 0.5 * a * t * t;
+
+        drawMotionGraph(); // Redraw to show shaded area
+        showAreaCalculation(u, v, t, s);
     }
 }
 
@@ -200,6 +298,11 @@ function resetMotion() {
     document.getElementById('initial-velocity').value = 0;
     document.getElementById('acceleration').value = 2;
     document.getElementById('time-range').value = 10;
+
+    // Hide calculation on reset
+    const calculationDiv = document.getElementById('area-calculation');
+    if (calculationDiv) calculationDiv.style.display = 'none';
+
     updateMotionValues();
 }
 
