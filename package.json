@@ -1,0 +1,39 @@
+{
+  "name": "igcse-physics-force-motion",
+  "version": "1.0.0",
+  "description": "Interactive IGCSE Physics Force and Motion App with comprehensive test coverage",
+  "main": "app.js",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:verbose": "jest --verbose"
+  },
+  "keywords": [
+    "physics",
+    "igcse",
+    "education",
+    "interactive"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@testing-library/dom": "^9.3.4",
+    "jest": "^29.7.0",
+    "jest-canvas-mock": "^2.5.2",
+    "jest-environment-jsdom": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "setupFiles": [
+      "jest-canvas-mock"
+    ],
+    "collectCoverageFrom": [
+      "physics-calculations.js",
+      "!**/node_modules/**"
+    ],
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ]
+  }
+}
