@@ -1266,13 +1266,181 @@ function resetMoment() {
 }
 
 // =====================================================
+// NEW FEATURES - STUB FUNCTIONS (Phase 2 Implementation Pending)
+// =====================================================
+
+// Gamification System
+function initGamification() {
+    const xpBar = document.getElementById('xp-bar');
+    if (xpBar) xpBar.style.width = '0%';
+
+    document.getElementById('achievements-btn')?.addEventListener('click', openAchievements);
+    document.getElementById('theme-toggle')?.addEventListener('click', toggleTheme);
+    document.getElementById('sound-toggle')?.addEventListener('click', toggleSound);
+}
+
+function openAchievements() {
+    const modal = document.getElementById('achievements-modal');
+    if (modal) {
+        modal.style.display = 'block';
+        const grid = document.getElementById('achievements-grid');
+        if (grid) {
+            grid.innerHTML = '<p style="text-align:center; padding:2rem; color:var(--text-color);">🏆 Achievements system coming in Phase 2!<br><br>This will track your progress with 25+ achievements including:<br>• First Steps<br>• Speed Demon<br>• Force Master<br>• Challenge Champion<br>• And many more!</p>';
+        }
+    }
+}
+
+function closeAchievements() {
+    const modal = document.getElementById('achievements-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+function toggleTheme() {
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    localStorage.setItem('darkMode', isDark);
+
+    const btn = document.getElementById('theme-toggle');
+    if (btn) btn.textContent = isDark ? '☀️' : '🌙';
+}
+
+function toggleSound() {
+    const soundEnabled = localStorage.getItem('soundEnabled') !== 'false';
+    localStorage.setItem('soundEnabled', !soundEnabled);
+
+    const btn = document.getElementById('sound-toggle');
+    if (btn) btn.textContent = soundEnabled ? '🔇' : '🔊';
+}
+
+// Projectile Motion
+function loadProjectileScenario(type) {
+    alert('🎯 Projectile Motion coming in Phase 2!\n\nThis will include:\n• Basketball shot simulator\n• Cannon ball trajectory\n• Rocket launch\n• Parabolic path visualization\n• Range and height calculations');
+}
+
+function launchProjectile() {
+    alert('🚀 Launch functionality coming in Phase 2!');
+}
+
+function resetProjectile() {
+    alert('🔄 Projectile reset coming in Phase 2!');
+}
+
+// Energy & Power
+function startRollerCoaster() {
+    alert('🎢 Roller Coaster Energy Simulation coming in Phase 2!\n\nThis will show:\n• Potential energy (PE = mgh)\n• Kinetic energy (KE = ½mv²)\n• Energy conservation\n• Real-time energy transformation\n• Friction effects');
+}
+
+function resetRollerCoaster() {
+    alert('🔄 Roller coaster reset coming in Phase 2!');
+}
+
+// Circular Motion
+function loadOrbitScenario(type) {
+    const scenarios = {
+        'iss': '🛰️ ISS Orbit: 400km altitude, 7.66 km/s',
+        'moon': '🌕 Moon Orbit: 384,400 km distance',
+        'gps': '📡 GPS Satellite: 20,200 km altitude'
+    };
+    alert(`Orbital Scenario: ${scenarios[type]}\n\nComing in Phase 2!\n\nWill include:\n• Circular orbit visualization\n• Centripetal force calculation\n• Orbital velocity\n• Period and frequency`);
+}
+
+function startOrbit() {
+    alert('🌍 Orbit simulation coming in Phase 2!');
+}
+
+function resetOrbit() {
+    alert('🔄 Orbit reset coming in Phase 2!');
+}
+
+// Friction
+function loadSurface(type) {
+    const surfaces = {
+        'ice': '❄️ Ice: μ = 0.1 (very low friction)',
+        'wood': '🪵 Wood: μ = 0.4 (medium friction)',
+        'rubber': '🛞 Rubber: μ = 0.8 (high friction)'
+    };
+    alert(`Surface: ${surfaces[type]}\n\nComing in Phase 2!\n\nWill demonstrate:\n• Static vs kinetic friction\n• Normal force\n• Motion threshold\n• Net force calculation`);
+}
+
+function applyFrictionForce() {
+    alert('🔥 Friction force application coming in Phase 2!');
+}
+
+function resetFriction() {
+    alert('🔄 Friction reset coming in Phase 2!');
+}
+
+// Challenge Mode
+function newChallenge() {
+    alert('🎮 Challenge Mode coming in Phase 2!\n\nFeatures:\n• Random physics problems\n• Scoring system\n• Leaderboards\n• Timed challenges\n• Streak bonuses');
+}
+
+function checkAnswer() {
+    alert('✓ Answer checking coming in Phase 2!');
+}
+
+function skipChallenge() {
+    alert('⏭️ Skip functionality coming in Phase 2!');
+}
+
+// Physics Sandbox
+function addSandboxObject(type) {
+    const objects = {
+        'circle': '⚫ Circle object',
+        'square': '⬛ Square object',
+        'ramp': '📐 Ramp',
+        'spring': '🌀 Spring'
+    };
+    alert(`Adding ${objects[type]}\n\nSandbox coming in Phase 2!\n\nWill allow you to:\n• Add multiple objects\n• Apply forces\n• Adjust gravity\n• See real-time physics\n• Save experiments`);
+}
+
+function startSandbox() {
+    alert('▶️ Sandbox simulation coming in Phase 2!');
+}
+
+function pauseSandbox() {
+    alert('⏸️ Pause coming in Phase 2!');
+}
+
+function resetSandbox() {
+    alert('🔄 Reset coming in Phase 2!');
+}
+
+function clearSandbox() {
+    alert('🗑️ Clear coming in Phase 2!');
+}
+
+function exportSandbox() {
+    alert('💾 Export coming in Phase 2!');
+}
+
+// =====================================================
 // INITIALIZATION
 // =====================================================
 window.addEventListener('load', () => {
+    // Initialize original features
     initMotion();
     initForce();
     initMomentum();
     initTerminalVelocity();
     initCentreOfMass();
     initMoment();
+
+    // Initialize new features
+    initGamification();
+
+    // Load saved theme preference
+    if (localStorage.getItem('darkMode') === 'true') {
+        document.body.classList.add('dark-mode');
+        const btn = document.getElementById('theme-toggle');
+        if (btn) btn.textContent = '☀️';
+    }
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        const modal = document.getElementById('achievements-modal');
+        if (event.target === modal) {
+            closeAchievements();
+        }
+    };
 });
