@@ -310,32 +310,211 @@ function resetMotion() {
 // RESULTANT FORCE SIMULATION
 // =====================================================
 function initForce() {
-    document.getElementById('force1')?.addEventListener('input', updateForces);
-    document.getElementById('force2')?.addEventListener('input', updateForces);
+    document.getElementById('force1-mag')?.addEventListener('input', updateForces);
+    document.getElementById('force1-angle')?.addEventListener('input', updateForces);
+    document.getElementById('force2-mag')?.addEventListener('input', updateForces);
+    document.getElementById('force2-angle')?.addEventListener('input', updateForces);
     document.getElementById('mass')?.addEventListener('input', updateForces);
 
     updateForces();
 }
 
+function loadScenario(type) {
+    const f1MagInput = document.getElementById('force1-mag');
+    const f1AngleInput = document.getElementById('force1-angle');
+    const f2MagInput = document.getElementById('force2-mag');
+    const f2AngleInput = document.getElementById('force2-angle');
+    const massInput = document.getElementById('mass');
+
+    switch(type) {
+        case 'same':
+            // Same direction - both forces pointing right (0°)
+            f1MagInput.value = 60;
+            f1AngleInput.value = 0;
+            f2MagInput.value = 40;
+            f2AngleInput.value = 0;
+            massInput.value = 10;
+            break;
+        case 'opposite':
+            // Opposite direction - one left (180°), one right (0°)
+            f1MagInput.value = 80;
+            f1AngleInput.value = 0;
+            f2MagInput.value = 50;
+            f2AngleInput.value = 180;
+            massInput.value = 10;
+            break;
+        case 'perpendicular':
+            // 90 degrees - one right (0°), one up (90°)
+            f1MagInput.value = 40;
+            f1AngleInput.value = 0;
+            f2MagInput.value = 30;
+            f2AngleInput.value = 90;
+            massInput.value = 10;
+            break;
+        case 'custom':
+            // Custom scenario
+            f1MagInput.value = 50;
+            f1AngleInput.value = 45;
+            f2MagInput.value = 35;
+            f2AngleInput.value = 135;
+            massInput.value = 10;
+            break;
+    }
+
+    updateForces();
+}
+
 function updateForces() {
-    const f1 = parseFloat(document.getElementById('force1')?.value || 0);
-    const f2 = parseFloat(document.getElementById('force2')?.value || 0);
+    const f1Mag = parseFloat(document.getElementById('force1-mag')?.value || 0);
+    const f1Angle = parseFloat(document.getElementById('force1-angle')?.value || 0);
+    const f2Mag = parseFloat(document.getElementById('force2-mag')?.value || 0);
+    const f2Angle = parseFloat(document.getElementById('force2-angle')?.value || 0);
     const mass = parseFloat(document.getElementById('mass')?.value || 1);
 
-    document.getElementById('f1-value').textContent = f1;
-    document.getElementById('f2-value').textContent = f2;
+    // Update display values
+    document.getElementById('f1-mag-value').textContent = f1Mag;
+    document.getElementById('f1-angle-value').textContent = f1Angle;
+    document.getElementById('f2-mag-value').textContent = f2Mag;
+    document.getElementById('f2-angle-value').textContent = f2Angle;
     document.getElementById('mass-value').textContent = mass;
 
-    // Calculate resultant force
-    const resultant = Math.sqrt(f1 * f1 + f2 * f2);
-    const angle = Math.atan2(f2, f1) * 180 / Math.PI;
+    // Convert angles to radians
+    const f1AngleRad = f1Angle * Math.PI / 180;
+    const f2AngleRad = f2Angle * Math.PI / 180;
+
+    // Calculate components
+    const f1x = f1Mag * Math.cos(f1AngleRad);
+    const f1y = f1Mag * Math.sin(f1AngleRad);
+    const f2x = f2Mag * Math.cos(f2AngleRad);
+    const f2y = f2Mag * Math.sin(f2AngleRad);
+
+    // Calculate resultant components
+    const rx = f1x + f2x;
+    const ry = f1y + f2y;
+
+    // Calculate resultant magnitude and angle
+    const resultant = Math.sqrt(rx * rx + ry * ry);
+    const angle = Math.atan2(ry, rx) * 180 / Math.PI;
     const acceleration = resultant / mass;
+
+    // Update displays
+    document.getElementById('f1-display').textContent = f1Mag.toFixed(2);
+    document.getElementById('f1x-display').textContent = f1x.toFixed(2);
+    document.getElementById('f1y-display').textContent = f1y.toFixed(2);
+
+    document.getElementById('f2-display').textContent = f2Mag.toFixed(2);
+    document.getElementById('f2x-display').textContent = f2x.toFixed(2);
+    document.getElementById('f2y-display').textContent = f2y.toFixed(2);
 
     document.getElementById('resultant-force').textContent = resultant.toFixed(2);
     document.getElementById('force-angle').textContent = angle.toFixed(2);
+    document.getElementById('rx-display').textContent = rx.toFixed(2);
+    document.getElementById('ry-display').textContent = ry.toFixed(2);
     document.getElementById('force-acceleration').textContent = acceleration.toFixed(2);
 
     drawForceVectors();
+    showForceCalculation(f1Mag, f1Angle, f2Mag, f2Angle, f1x, f1y, f2x, f2y, rx, ry, resultant, angle, mass, acceleration);
+}
+
+function showForceCalculation(f1Mag, f1Angle, f2Mag, f2Angle, f1x, f1y, f2x, f2y, rx, ry, resultant, angle, mass, accel) {
+    const stepsDiv = document.getElementById('force-calc-steps');
+    if (!stepsDiv) return;
+
+    let html = '<div style="line-height: 1.8;">';
+
+    // Determine scenario type
+    const angleDiff = Math.abs(f1Angle - f2Angle);
+    const isSameDirection = (angleDiff < 5 || angleDiff > 355);
+    const isOppositeDirection = (Math.abs(angleDiff - 180) < 5);
+    const isPerpendicular = (Math.abs(angleDiff - 90) < 5 || Math.abs(angleDiff - 270) < 5);
+
+    if (isSameDirection) {
+        html += '<div style="background: #d5f4e6; padding: 12px; border-radius: 5px; margin: 10px 0; border-left: 4px solid #27ae60;">';
+        html += '<p style="margin: 5px 0; font-weight: bold; color: #27ae60;">Scenario: Forces in SAME DIRECTION</p>';
+        html += '<p style="margin: 10px 0;"><strong>Method:</strong> Simply add the forces</p>';
+        html += `<p style="margin: 5px 0; font-family: monospace; font-size: 15px;">F₁ = ${f1Mag.toFixed(2)} N at ${f1Angle}°</p>`;
+        html += `<p style="margin: 5px 0; font-family: monospace; font-size: 15px;">F₂ = ${f2Mag.toFixed(2)} N at ${f2Angle}°</p>`;
+        html += `<p style="margin: 10px 0; font-family: monospace; font-size: 16px; font-weight: bold;">Resultant = F₁ + F₂ = ${f1Mag.toFixed(2)} + ${f2Mag.toFixed(2)} = ${resultant.toFixed(2)} N</p>`;
+        html += '</div>';
+    } else if (isOppositeDirection) {
+        html += '<div style="background: #fadbd8; padding: 12px; border-radius: 5px; margin: 10px 0; border-left: 4px solid #e74c3c;">';
+        html += '<p style="margin: 5px 0; font-weight: bold; color: #e74c3c;">Scenario: Forces in OPPOSITE DIRECTIONS</p>';
+        html += '<p style="margin: 10px 0;"><strong>Method:</strong> Subtract smaller from larger</p>';
+        html += `<p style="margin: 5px 0; font-family: monospace; font-size: 15px;">F₁ = ${f1Mag.toFixed(2)} N at ${f1Angle}°</p>`;
+        html += `<p style="margin: 5px 0; font-family: monospace; font-size: 15px;">F₂ = ${f2Mag.toFixed(2)} N at ${f2Angle}°</p>`;
+        const larger = Math.max(f1Mag, f2Mag);
+        const smaller = Math.min(f1Mag, f2Mag);
+        html += `<p style="margin: 10px 0; font-family: monospace; font-size: 16px; font-weight: bold;">Resultant = ${larger.toFixed(2)} - ${smaller.toFixed(2)} = ${resultant.toFixed(2)} N</p>`;
+        html += `<p style="margin: 5px 0;">Direction: ${angle.toFixed(2)}° (towards the larger force)</p>`;
+        html += '</div>';
+    } else if (isPerpendicular) {
+        html += '<div style="background: #d6eaf8; padding: 12px; border-radius: 5px; margin: 10px 0; border-left: 4px solid #3498db;">';
+        html += '<p style="margin: 5px 0; font-weight: bold; color: #3498db;">Scenario: Forces at 90° (PERPENDICULAR)</p>';
+        html += '<p style="margin: 10px 0;"><strong>Method:</strong> Use Pythagoras theorem</p>';
+        html += `<p style="margin: 5px 0; font-family: monospace; font-size: 15px;">F₁ = ${f1Mag.toFixed(2)} N at ${f1Angle}°</p>`;
+        html += `<p style="margin: 5px 0; font-family: monospace; font-size: 15px;">F₂ = ${f2Mag.toFixed(2)} N at ${f2Angle}°</p>`;
+        html += '<p style="margin: 10px 0;"><strong>Step 1:</strong> Calculate magnitude</p>';
+        html += `<p style="margin: 5px 0; font-family: monospace; font-size: 15px;">Resultant² = F₁² + F₂²</p>`;
+        html += `<p style="margin: 5px 0; font-family: monospace; font-size: 15px;">Resultant² = ${f1Mag.toFixed(2)}² + ${f2Mag.toFixed(2)}² = ${(f1Mag*f1Mag).toFixed(2)} + ${(f2Mag*f2Mag).toFixed(2)} = ${(f1Mag*f1Mag + f2Mag*f2Mag).toFixed(2)}</p>`;
+        html += `<p style="margin: 5px 0; font-family: monospace; font-size: 16px; font-weight: bold;">Resultant = √${(f1Mag*f1Mag + f2Mag*f2Mag).toFixed(2)} = ${resultant.toFixed(2)} N</p>`;
+        html += '<p style="margin: 10px 0;"><strong>Step 2:</strong> Calculate direction</p>';
+        html += `<p style="margin: 5px 0; font-family: monospace; font-size: 15px;">θ = ${angle.toFixed(2)}° from horizontal</p>`;
+        html += '</div>';
+    } else {
+        // General case - use component method
+        html += '<div style="background: #fff3cd; padding: 12px; border-radius: 5px; margin: 10px 0; border-left: 4px solid #ffc107;">';
+        html += '<p style="margin: 5px 0; font-weight: bold; color: #856404;">Scenario: General Case (Arbitrary Angles)</p>';
+        html += '<p style="margin: 10px 0;"><strong>Method:</strong> Resolve into components and add</p>';
+        html += '</div>';
+    }
+
+    // Always show component method
+    html += '<div style="background: white; padding: 15px; border-radius: 5px; margin: 15px 0;">';
+    html += '<h5 style="margin-top: 0;">Component Method (Works for all angles):</h5>';
+
+    html += '<p style="margin: 10px 0;"><strong>Step 1:</strong> Resolve each force into x and y components</p>';
+    html += '<div style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0;">';
+    html += `<p style="margin: 5px 0; font-family: monospace;">F₁ₓ = ${f1Mag.toFixed(2)} × cos(${f1Angle}°) = ${f1x.toFixed(2)} N</p>`;
+    html += `<p style="margin: 5px 0; font-family: monospace;">F₁ᵧ = ${f1Mag.toFixed(2)} × sin(${f1Angle}°) = ${f1y.toFixed(2)} N</p>`;
+    html += `<p style="margin: 5px 0; font-family: monospace;">F₂ₓ = ${f2Mag.toFixed(2)} × cos(${f2Angle}°) = ${f2x.toFixed(2)} N</p>`;
+    html += `<p style="margin: 5px 0; font-family: monospace;">F₂ᵧ = ${f2Mag.toFixed(2)} × sin(${f2Angle}°) = ${f2y.toFixed(2)} N</p>`;
+    html += '</div>';
+
+    html += '<p style="margin: 10px 0;"><strong>Step 2:</strong> Add components</p>';
+    html += '<div style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0;">';
+    html += `<p style="margin: 5px 0; font-family: monospace;">Rₓ = F₁ₓ + F₂ₓ = ${f1x.toFixed(2)} + ${f2x.toFixed(2)} = ${rx.toFixed(2)} N</p>`;
+    html += `<p style="margin: 5px 0; font-family: monospace;">Rᵧ = F₁ᵧ + F₂ᵧ = ${f1y.toFixed(2)} + ${f2y.toFixed(2)} = ${ry.toFixed(2)} N</p>`;
+    html += '</div>';
+
+    html += '<p style="margin: 10px 0;"><strong>Step 3:</strong> Calculate magnitude using Pythagoras</p>';
+    html += '<div style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0;">';
+    html += `<p style="margin: 5px 0; font-family: monospace;">R = √(Rₓ² + Rᵧ²)</p>`;
+    html += `<p style="margin: 5px 0; font-family: monospace;">R = √(${rx.toFixed(2)}² + ${ry.toFixed(2)}²)</p>`;
+    html += `<p style="margin: 5px 0; font-family: monospace;">R = √(${(rx*rx).toFixed(2)} + ${(ry*ry).toFixed(2)})</p>`;
+    html += `<p style="margin: 5px 0; font-family: monospace; font-weight: bold; font-size: 16px;">R = ${resultant.toFixed(2)} N</p>`;
+    html += '</div>';
+
+    html += '<p style="margin: 10px 0;"><strong>Step 4:</strong> Calculate direction</p>';
+    html += '<div style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0;">';
+    html += `<p style="margin: 5px 0; font-family: monospace;">θ = tan⁻¹(Rᵧ / Rₓ)</p>`;
+    html += `<p style="margin: 5px 0; font-family: monospace;">θ = tan⁻¹(${ry.toFixed(2)} / ${rx.toFixed(2)})</p>`;
+    html += `<p style="margin: 5px 0; font-family: monospace; font-weight: bold; font-size: 16px;">θ = ${angle.toFixed(2)}°</p>`;
+    html += '</div>';
+
+    html += '</div>';
+
+    // Newton's Second Law
+    html += '<div style="background: #d4edda; padding: 15px; border-radius: 5px; margin: 15px 0; border-left: 4px solid #28a745;">';
+    html += '<h5 style="margin-top: 0; color: #155724;">Apply Newton\'s Second Law (F = ma):</h5>';
+    html += `<p style="margin: 5px 0; font-family: monospace; font-size: 15px;">F = ma</p>`;
+    html += `<p style="margin: 5px 0; font-family: monospace; font-size: 15px;">a = F / m</p>`;
+    html += `<p style="margin: 5px 0; font-family: monospace; font-size: 15px;">a = ${resultant.toFixed(2)} / ${mass}</p>`;
+    html += `<p style="margin: 5px 0; font-family: monospace; font-size: 17px; font-weight: bold; color: #155724;">a = ${accel.toFixed(2)} m/s²</p>`;
+    html += '</div>';
+
+    html += '</div>';
+
+    stepsDiv.innerHTML = html;
 }
 
 function drawForceVectors() {
@@ -348,19 +527,14 @@ function drawForceVectors() {
 
     ctx.clearRect(0, 0, width, height);
 
-    const f1 = parseFloat(document.getElementById('force1')?.value || 0);
-    const f2 = parseFloat(document.getElementById('force2')?.value || 0);
+    const f1Mag = parseFloat(document.getElementById('force1-mag')?.value || 0);
+    const f1Angle = parseFloat(document.getElementById('force1-angle')?.value || 0);
+    const f2Mag = parseFloat(document.getElementById('force2-mag')?.value || 0);
+    const f2Angle = parseFloat(document.getElementById('force2-angle')?.value || 0);
 
     const centerX = width / 2;
     const centerY = height / 2;
     const scale = 2;
-
-    // Draw object (box)
-    ctx.fillStyle = '#95a5a6';
-    ctx.fillRect(centerX - 30, centerY - 30, 60, 60);
-    ctx.strokeStyle = '#2c3e50';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(centerX - 30, centerY - 30, 60, 60);
 
     // Draw axes
     ctx.strokeStyle = '#bdc3c7';
@@ -374,39 +548,85 @@ function drawForceVectors() {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Draw Force 1 (horizontal)
-    drawArrow(ctx, centerX, centerY, centerX + f1 * scale, centerY, '#e74c3c', 'F₁');
+    // Add axis labels
+    ctx.fillStyle = '#7f8c8d';
+    ctx.font = '12px Arial';
+    ctx.fillText('x', width - 20, centerY - 10);
+    ctx.fillText('y', centerX + 10, 20);
 
-    // Draw Force 2 (vertical)
-    drawArrow(ctx, centerX, centerY, centerX, centerY - f2 * scale, '#27ae60', 'F₂');
+    // Draw object (circle)
+    ctx.fillStyle = '#95a5a6';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 25, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.strokeStyle = '#2c3e50';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Calculate force endpoints
+    const f1AngleRad = f1Angle * Math.PI / 180;
+    const f2AngleRad = f2Angle * Math.PI / 180;
+
+    const f1EndX = centerX + f1Mag * scale * Math.cos(f1AngleRad);
+    const f1EndY = centerY - f1Mag * scale * Math.sin(f1AngleRad); // Negative because canvas y increases downward
+
+    const f2EndX = centerX + f2Mag * scale * Math.cos(f2AngleRad);
+    const f2EndY = centerY - f2Mag * scale * Math.sin(f2AngleRad);
+
+    // Calculate resultant components
+    const f1x = f1Mag * Math.cos(f1AngleRad);
+    const f1y = f1Mag * Math.sin(f1AngleRad);
+    const f2x = f2Mag * Math.cos(f2AngleRad);
+    const f2y = f2Mag * Math.sin(f2AngleRad);
+    const rx = f1x + f2x;
+    const ry = f1y + f2y;
+
+    const resultantEndX = centerX + rx * scale;
+    const resultantEndY = centerY - ry * scale;
+
+    // Draw parallelogram (for visualization)
+    if (f1Mag > 0 && f2Mag > 0) {
+        ctx.strokeStyle = '#95a5a6';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(f1EndX, f1EndY);
+        ctx.lineTo(resultantEndX, resultantEndY);
+        ctx.moveTo(f2EndX, f2EndY);
+        ctx.lineTo(resultantEndX, resultantEndY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    // Draw Force 1
+    if (f1Mag > 0) {
+        drawArrow(ctx, centerX, centerY, f1EndX, f1EndY, '#e74c3c', `F₁ (${f1Mag.toFixed(0)}N)`);
+    }
+
+    // Draw Force 2
+    if (f2Mag > 0) {
+        drawArrow(ctx, centerX, centerY, f2EndX, f2EndY, '#27ae60', `F₂ (${f2Mag.toFixed(0)}N)`);
+    }
 
     // Draw Resultant Force
-    const resultantX = centerX + f1 * scale;
-    const resultantY = centerY - f2 * scale;
-    drawArrow(ctx, centerX, centerY, resultantX, resultantY, '#3498db', 'Resultant');
-
-    // Draw parallelogram
-    ctx.strokeStyle = '#95a5a6';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([3, 3]);
-    ctx.beginPath();
-    ctx.moveTo(centerX + f1 * scale, centerY);
-    ctx.lineTo(resultantX, resultantY);
-    ctx.moveTo(centerX, centerY - f2 * scale);
-    ctx.lineTo(resultantX, resultantY);
-    ctx.stroke();
-    ctx.setLineDash([]);
+    if (rx !== 0 || ry !== 0) {
+        drawArrow(ctx, centerX, centerY, resultantEndX, resultantEndY, '#3498db', 'Resultant', true);
+    }
 }
 
-function drawArrow(ctx, fromX, fromY, toX, toY, color, label) {
+function drawArrow(ctx, fromX, fromY, toX, toY, color, label, isThick = false) {
     const headLength = 15;
     const dx = toX - fromX;
     const dy = toY - fromY;
+    const length = Math.sqrt(dx * dx + dy * dy);
+
+    if (length < 1) return; // Don't draw very small arrows
+
     const angle = Math.atan2(dy, dx);
 
     // Draw line
     ctx.strokeStyle = color;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = isThick ? 4 : 3;
     ctx.beginPath();
     ctx.moveTo(fromX, fromY);
     ctx.lineTo(toX, toY);
@@ -423,15 +643,22 @@ function drawArrow(ctx, fromX, fromY, toX, toY, color, label) {
 
     // Draw label
     ctx.fillStyle = color;
-    ctx.font = 'bold 14px Arial';
+    ctx.font = isThick ? 'bold 16px Arial' : 'bold 14px Arial';
     const midX = (fromX + toX) / 2;
     const midY = (fromY + toY) / 2;
-    ctx.fillText(label, midX + 10, midY - 10);
+
+    // Position label perpendicular to the arrow
+    const offsetX = -20 * Math.sin(angle);
+    const offsetY = 20 * Math.cos(angle);
+
+    ctx.fillText(label, midX + offsetX, midY + offsetY);
 }
 
 function resetForces() {
-    document.getElementById('force1').value = 50;
-    document.getElementById('force2').value = 30;
+    document.getElementById('force1-mag').value = 50;
+    document.getElementById('force1-angle').value = 0;
+    document.getElementById('force2-mag').value = 30;
+    document.getElementById('force2-angle').value = 90;
     document.getElementById('mass').value = 10;
     updateForces();
 }

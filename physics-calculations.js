@@ -99,6 +99,65 @@ function calculateWeight(mass, g = 9.8) {
     return mass * g;
 }
 
+/**
+ * Calculate force components from magnitude and angle
+ * @param {number} magnitude - Force magnitude (N)
+ * @param {number} angleDegrees - Angle in degrees
+ * @returns {Object} {x, y} - Force components
+ */
+function calculateForceComponents(magnitude, angleDegrees) {
+    const angleRad = angleDegrees * Math.PI / 180;
+    return {
+        x: magnitude * Math.cos(angleRad),
+        y: magnitude * Math.sin(angleRad)
+    };
+}
+
+/**
+ * Calculate resultant force from two forces with magnitudes and angles
+ * @param {number} f1Mag - Magnitude of force 1 (N)
+ * @param {number} f1Angle - Angle of force 1 (degrees)
+ * @param {number} f2Mag - Magnitude of force 2 (N)
+ * @param {number} f2Angle - Angle of force 2 (degrees)
+ * @returns {Object} {magnitude, angle, components} - Resultant force
+ */
+function calculateResultantForceWithAngles(f1Mag, f1Angle, f2Mag, f2Angle) {
+    const f1 = calculateForceComponents(f1Mag, f1Angle);
+    const f2 = calculateForceComponents(f2Mag, f2Angle);
+
+    const rx = f1.x + f2.x;
+    const ry = f1.y + f2.y;
+
+    const magnitude = Math.sqrt(rx * rx + ry * ry);
+    const angle = Math.atan2(ry, rx) * 180 / Math.PI;
+
+    return {
+        magnitude,
+        angle,
+        components: { x: rx, y: ry }
+    };
+}
+
+/**
+ * Calculate resultant of forces in same direction
+ * @param {number} f1 - First force (N)
+ * @param {number} f2 - Second force (N)
+ * @returns {number} Resultant force (N)
+ */
+function calculateResultantSameDirection(f1, f2) {
+    return f1 + f2;
+}
+
+/**
+ * Calculate resultant of forces in opposite directions
+ * @param {number} f1 - First force (N)
+ * @param {number} f2 - Second force (N)
+ * @returns {number} Resultant force (N)
+ */
+function calculateResultantOppositeDirection(f1, f2) {
+    return Math.abs(f1 - f2);
+}
+
 // =====================================================
 // MOMENTUM CALCULATIONS
 // =====================================================
@@ -319,6 +378,10 @@ if (typeof module !== 'undefined' && module.exports) {
         calculateForceAngle,
         calculateAcceleration,
         calculateWeight,
+        calculateForceComponents,
+        calculateResultantForceWithAngles,
+        calculateResultantSameDirection,
+        calculateResultantOppositeDirection,
         // Momentum
         calculateMomentum,
         calculateTotalMomentum,
