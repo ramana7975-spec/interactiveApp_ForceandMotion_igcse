@@ -3,25 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IGCSE Physics: Force and Motion Interactive</title>
+    <title>IGCSE Physics: Ultimate Interactive Experience</title>
     <link rel="stylesheet" href="styles.css">
+    <meta name="description" content="Revolutionary IGCSE Physics learning platform with gamification, real-world scenarios, and interactive simulations">
 </head>
 <body>
+    <!-- Gamification Overlay -->
+    <div id="gamification-panel" class="gamification-panel" aria-label="Progress and achievements">
+        <div class="level-display">
+            <span class="level-badge" aria-label="Current level">Level <span id="user-level">1</span></span>
+            <span class="xp-text" aria-label="Experience points"><span id="user-xp">0</span> / <span id="xp-needed">100</span> XP</span>
+        </div>
+        <div class="xp-bar-container" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+            <div id="xp-bar" class="xp-bar"></div>
+        </div>
+        <button id="achievements-btn" class="icon-btn" aria-label="View achievements" title="Achievements">
+            🏆 <span id="achievement-count">0</span>
+        </button>
+        <button id="theme-toggle" class="icon-btn" aria-label="Toggle dark mode" title="Toggle Theme">🌙</button>
+        <button id="sound-toggle" class="icon-btn" aria-label="Toggle sound" title="Toggle Sound">🔊</button>
+    </div>
+
+    <!-- Achievement Notification -->
+    <div id="achievement-notification" class="achievement-notification" role="alert" aria-live="polite"></div>
+
+    <!-- Particle Canvas for Effects -->
+    <canvas id="particle-canvas" class="particle-canvas"></canvas>
+
     <header>
-        <h1>IGCSE Physics: Force and Motion</h1>
-        <p>Interactive Learning Tool for Cambridge IGCSE Physics</p>
+        <h1>🚀 IGCSE Physics: Ultimate Interactive Experience</h1>
+        <p>Revolutionary Learning Platform with Gamification, Real-World Scenarios & Advanced Simulations</p>
     </header>
 
-    <nav class="topic-nav">
-        <button class="nav-btn active" onclick="showTopic('motion')">Motion</button>
-        <button class="nav-btn" onclick="showTopic('resultant-force')">Resultant Force</button>
-        <button class="nav-btn" onclick="showTopic('momentum')">Momentum</button>
-        <button class="nav-btn" onclick="showTopic('terminal-velocity')">Terminal Velocity</button>
-        <button class="nav-btn" onclick="showTopic('centre-mass')">Centre of Mass</button>
-        <button class="nav-btn" onclick="showTopic('moment')">Moment</button>
+    <nav class="topic-nav" role="navigation" aria-label="Main navigation">
+        <button class="nav-btn active" onclick="showTopic('motion')" aria-label="Motion topic">Motion</button>
+        <button class="nav-btn" onclick="showTopic('resultant-force')" aria-label="Resultant force topic">Resultant Force</button>
+        <button class="nav-btn" onclick="showTopic('momentum')" aria-label="Momentum topic">Momentum</button>
+        <button class="nav-btn" onclick="showTopic('terminal-velocity')" aria-label="Terminal velocity topic">Terminal Velocity</button>
+        <button class="nav-btn" onclick="showTopic('centre-mass')" aria-label="Centre of mass topic">Centre of Mass</button>
+        <button class="nav-btn" onclick="showTopic('moment')" aria-label="Moment topic">Moment</button>
+        <button class="nav-btn" onclick="showTopic('projectile')" aria-label="Projectile motion topic">🎯 Projectile Motion</button>
+        <button class="nav-btn" onclick="showTopic('energy')" aria-label="Energy and power topic">⚡ Energy & Power</button>
+        <button class="nav-btn" onclick="showTopic('circular')" aria-label="Circular motion topic">🌍 Circular Motion</button>
+        <button class="nav-btn" onclick="showTopic('friction')" aria-label="Friction topic">🔥 Friction</button>
+        <button class="nav-btn" onclick="showTopic('challenge')" aria-label="Challenge mode">🎮 Challenge Mode</button>
+        <button class="nav-btn" onclick="showTopic('sandbox')" aria-label="Physics sandbox">🔬 Physics Sandbox</button>
     </nav>
 
-    <main>
+    <main role="main">
         <!-- Motion Section -->
         <section id="motion" class="topic-section active">
             <h2>Motion</h2>
@@ -47,18 +76,18 @@
                     <h3>Velocity-Time Graph Simulator</h3>
                     <div class="controls">
                         <label>Initial Velocity (u): <span id="u-value">0</span> m/s</label>
-                        <input type="range" id="initial-velocity" min="0" max="20" value="0" step="1">
+                        <input type="range" id="initial-velocity" min="0" max="20" value="0" step="1" aria-label="Adjust initial velocity">
 
                         <label>Acceleration (a): <span id="a-value">2</span> m/s²</label>
-                        <input type="range" id="acceleration" min="-5" max="5" value="2" step="0.5">
+                        <input type="range" id="acceleration" min="-5" max="5" value="2" step="0.5" aria-label="Adjust acceleration">
 
                         <label>Time: <span id="time-value">10</span> s</label>
-                        <input type="range" id="time-range" min="5" max="20" value="10" step="1">
+                        <input type="range" id="time-range" min="5" max="20" value="10" step="1" aria-label="Adjust time">
 
-                        <button onclick="resetMotion()">Reset</button>
-                        <button onclick="toggleAnimation()">Start/Stop</button>
+                        <button onclick="resetMotion()" aria-label="Reset motion simulation">Reset</button>
+                        <button onclick="toggleAnimation()" aria-label="Start or stop animation">Start/Stop</button>
                     </div>
-                    <canvas id="motion-canvas" width="600" height="400"></canvas>
+                    <canvas id="motion-canvas" width="600" height="400" aria-label="Motion graph visualization"></canvas>
                     <div class="results">
                         <p>Final Velocity: <span id="final-velocity">0</span> m/s</p>
                         <p>Displacement: <span id="displacement">0</span> m</p>
@@ -426,12 +455,340 @@
                 </div>
             </div>
         </section>
+
+        <!-- NEW: Projectile Motion Section -->
+        <section id="projectile" class="topic-section">
+            <h2>🎯 Projectile Motion</h2>
+            <div class="content-grid">
+                <div class="explanation">
+                    <h3>Key Concepts</h3>
+                    <ul>
+                        <li><strong>Horizontal Component:</strong> Constant velocity (no acceleration)</li>
+                        <li><strong>Vertical Component:</strong> Accelerated motion (g = 9.8 m/s²)</li>
+                        <li><strong>Parabolic Path:</strong> Combination of horizontal and vertical motion</li>
+                        <li><strong>Range:</strong> Maximum horizontal distance traveled</li>
+                        <li><strong>Maximum Height:</strong> Peak of trajectory</li>
+                    </ul>
+                    <div class="formula-box">
+                        <p><strong>Key Equations:</strong></p>
+                        <p>Horizontal: x = v₀ cos(θ) × t</p>
+                        <p>Vertical: y = v₀ sin(θ) × t - ½gt²</p>
+                        <p>Range: R = (v₀² sin(2θ)) / g</p>
+                        <p>Max Height: H = (v₀² sin²(θ)) / (2g)</p>
+                    </div>
+                </div>
+                <div class="interactive">
+                    <h3>Projectile Motion Simulator</h3>
+
+                    <!-- Real-World Scenarios -->
+                    <div style="background: #ecf0f1; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                        <h4 style="margin-top: 0;">Real-World Scenarios:</h4>
+                        <button onclick="loadProjectileScenario('basketball')" style="margin: 5px; padding: 10px 20px; background: #e67e22; color: white; border: none; border-radius: 5px; cursor: pointer;">🏀 Basketball Shot</button>
+                        <button onclick="loadProjectileScenario('cannon')" style="margin: 5px; padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 5px; cursor: pointer;">💣 Cannon</button>
+                        <button onclick="loadProjectileScenario('rocket')" style="margin: 5px; padding: 10px 20px; background: #9b59b6; color: white; border: none; border-radius: 5px; cursor: pointer;">🚀 Rocket</button>
+                    </div>
+
+                    <div class="controls">
+                        <label>Initial Velocity: <span id="proj-velocity-value">20</span> m/s</label>
+                        <input type="range" id="proj-velocity" min="5" max="50" value="20" step="1">
+
+                        <label>Launch Angle: <span id="proj-angle-value">45</span>°</label>
+                        <input type="range" id="proj-angle" min="0" max="90" value="45" step="5">
+
+                        <label>Launch Height: <span id="proj-height-value">0</span> m</label>
+                        <input type="range" id="proj-height" min="0" max="20" value="0" step="1">
+
+                        <button onclick="launchProjectile()">Launch</button>
+                        <button onclick="resetProjectile()">Reset</button>
+                    </div>
+                    <canvas id="projectile-canvas" width="700" height="400"></canvas>
+                    <div class="results">
+                        <p>Range: <span id="proj-range">0</span> m</p>
+                        <p>Maximum Height: <span id="proj-max-height">0</span> m</p>
+                        <p>Flight Time: <span id="proj-time">0</span> s</p>
+                        <p>Horizontal Component: <span id="proj-vx">0</span> m/s</p>
+                        <p>Vertical Component: <span id="proj-vy">0</span> m/s</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- NEW: Energy & Power Section -->
+        <section id="energy" class="topic-section">
+            <h2>⚡ Energy & Power</h2>
+            <div class="content-grid">
+                <div class="explanation">
+                    <h3>Key Concepts</h3>
+                    <ul>
+                        <li><strong>Kinetic Energy:</strong> Energy of motion (KE = ½mv²)</li>
+                        <li><strong>Potential Energy:</strong> Energy due to position (PE = mgh)</li>
+                        <li><strong>Work Done:</strong> Energy transferred by a force (W = Fd)</li>
+                        <li><strong>Power:</strong> Rate of energy transfer (P = W/t)</li>
+                        <li><strong>Conservation of Energy:</strong> Total energy remains constant</li>
+                    </ul>
+                    <div class="formula-box">
+                        <p><strong>Key Equations:</strong></p>
+                        <p>KE = ½mv²</p>
+                        <p>PE = mgh</p>
+                        <p>W = Fd</p>
+                        <p>P = W/t = Fv</p>
+                        <p>Total E = KE + PE</p>
+                    </div>
+                </div>
+                <div class="interactive">
+                    <h3>Roller Coaster Energy Simulator</h3>
+                    <div class="controls">
+                        <label>Cart Mass: <span id="cart-mass-value">500</span> kg</label>
+                        <input type="range" id="cart-mass" min="100" max="1000" value="500" step="50">
+
+                        <label>Starting Height: <span id="start-height-value">30</span> m</label>
+                        <input type="range" id="start-height" min="10" max="50" value="30" step="2">
+
+                        <label>Friction: <span id="friction-value">0.05</span></label>
+                        <input type="range" id="friction" min="0" max="0.2" value="0.05" step="0.01">
+
+                        <button onclick="startRollerCoaster()">Start Ride</button>
+                        <button onclick="resetRollerCoaster()">Reset</button>
+                    </div>
+                    <canvas id="energy-canvas" width="700" height="450"></canvas>
+                    <div class="results">
+                        <p>Potential Energy: <span id="pe-value">0</span> J</p>
+                        <p>Kinetic Energy: <span id="ke-value">0</span> J</p>
+                        <p>Total Energy: <span id="total-energy">0</span> J</p>
+                        <p>Current Velocity: <span id="energy-velocity">0</span> m/s</p>
+                        <p>Current Height: <span id="energy-height">0</span> m</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- NEW: Circular Motion Section -->
+        <section id="circular" class="topic-section">
+            <h2>🌍 Circular Motion</h2>
+            <div class="content-grid">
+                <div class="explanation">
+                    <h3>Key Concepts</h3>
+                    <ul>
+                        <li><strong>Centripetal Force:</strong> Force directed toward center (F = mv²/r)</li>
+                        <li><strong>Angular Velocity:</strong> Rate of rotation (ω = v/r)</li>
+                        <li><strong>Period:</strong> Time for one complete revolution (T = 2πr/v)</li>
+                        <li><strong>Frequency:</strong> Number of revolutions per second (f = 1/T)</li>
+                        <li><strong>Orbital Motion:</strong> Satellites, planets, electrons</li>
+                    </ul>
+                    <div class="formula-box">
+                        <p><strong>Key Equations:</strong></p>
+                        <p>F = mv²/r</p>
+                        <p>v = 2πr/T</p>
+                        <p>ω = 2π/T</p>
+                        <p>a = v²/r</p>
+                    </div>
+                </div>
+                <div class="interactive">
+                    <h3>Satellite Orbit Simulator</h3>
+
+                    <!-- Orbital Scenarios -->
+                    <div style="background: #ecf0f1; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                        <h4 style="margin-top: 0;">Orbital Scenarios:</h4>
+                        <button onclick="loadOrbitScenario('iss')" style="margin: 5px; padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">🛰️ ISS Orbit</button>
+                        <button onclick="loadOrbitScenario('moon')" style="margin: 5px; padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 5px; cursor: pointer;">🌕 Moon Orbit</button>
+                        <button onclick="loadOrbitScenario('gps')" style="margin: 5px; padding: 10px 20px; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer;">📡 GPS Satellite</button>
+                    </div>
+
+                    <div class="controls">
+                        <label>Orbital Radius: <span id="orbit-radius-value">400</span> km</label>
+                        <input type="range" id="orbit-radius" min="200" max="2000" value="400" step="50">
+
+                        <label>Satellite Mass: <span id="sat-mass-value">1000</span> kg</label>
+                        <input type="range" id="sat-mass" min="100" max="5000" value="1000" step="100">
+
+                        <label>Central Mass: <span id="central-mass-value">5.97</span> × 10²⁴ kg</label>
+                        <input type="range" id="central-mass" min="1" max="10" value="5.97" step="0.1">
+
+                        <button onclick="startOrbit()">Start Orbit</button>
+                        <button onclick="resetOrbit()">Reset</button>
+                    </div>
+                    <canvas id="circular-canvas" width="600" height="600"></canvas>
+                    <div class="results">
+                        <p>Orbital Velocity: <span id="orbital-velocity">0</span> m/s</p>
+                        <p>Centripetal Force: <span id="centripetal-force">0</span> N</p>
+                        <p>Period: <span id="orbit-period">0</span> minutes</p>
+                        <p>Angular Velocity: <span id="angular-velocity">0</span> rad/s</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- NEW: Friction Section -->
+        <section id="friction" class="topic-section">
+            <h2>🔥 Friction</h2>
+            <div class="content-grid">
+                <div class="explanation">
+                    <h3>Key Concepts</h3>
+                    <ul>
+                        <li><strong>Static Friction:</strong> Prevents motion from starting (f_s ≤ μ_s N)</li>
+                        <li><strong>Kinetic Friction:</strong> Opposes motion (f_k = μ_k N)</li>
+                        <li><strong>Coefficient of Friction:</strong> Surface-dependent constant (μ)</li>
+                        <li><strong>Normal Force:</strong> Perpendicular force from surface (N)</li>
+                        <li><strong>Applications:</strong> Braking, walking, grip</li>
+                    </ul>
+                    <div class="formula-box">
+                        <p><strong>Key Equations:</strong></p>
+                        <p>f_s ≤ μ_s N</p>
+                        <p>f_k = μ_k N</p>
+                        <p>N = mg (horizontal surface)</p>
+                        <p>μ_s > μ_k (static > kinetic)</p>
+                    </div>
+                </div>
+                <div class="interactive">
+                    <h3>Friction Force Simulator</h3>
+
+                    <!-- Surface Types -->
+                    <div style="background: #ecf0f1; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                        <h4 style="margin-top: 0;">Surface Types:</h4>
+                        <button onclick="loadSurface('ice')" style="margin: 5px; padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">❄️ Ice (μ=0.1)</button>
+                        <button onclick="loadSurface('wood')" style="margin: 5px; padding: 10px 20px; background: #d35400; color: white; border: none; border-radius: 5px; cursor: pointer;">🪵 Wood (μ=0.4)</button>
+                        <button onclick="loadSurface('rubber')" style="margin: 5px; padding: 10px 20px; background: #2c3e50; color: white; border: none; border-radius: 5px; cursor: pointer;">🛞 Rubber (μ=0.8)</button>
+                    </div>
+
+                    <div class="controls">
+                        <label>Object Mass: <span id="friction-mass-value">10</span> kg</label>
+                        <input type="range" id="friction-mass" min="1" max="50" value="10" step="1">
+
+                        <label>Applied Force: <span id="applied-force-value">0</span> N</label>
+                        <input type="range" id="applied-force" min="0" max="200" value="0" step="5">
+
+                        <label>Coefficient (μ): <span id="mu-value">0.4</span></label>
+                        <input type="range" id="mu" min="0.05" max="1" value="0.4" step="0.05">
+
+                        <button onclick="applyFrictionForce()">Apply Force</button>
+                        <button onclick="resetFriction()">Reset</button>
+                    </div>
+                    <canvas id="friction-canvas" width="700" height="300"></canvas>
+                    <div class="results">
+                        <p>Normal Force: <span id="normal-force">0</span> N</p>
+                        <p>Max Static Friction: <span id="static-friction">0</span> N</p>
+                        <p>Kinetic Friction: <span id="kinetic-friction">0</span> N</p>
+                        <p>Net Force: <span id="net-force-friction">0</span> N</p>
+                        <p>Status: <span id="friction-status">At Rest</span></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- NEW: Challenge Mode Section -->
+        <section id="challenge" class="topic-section">
+            <h2>🎮 Challenge Mode</h2>
+            <div class="challenge-container">
+                <div class="challenge-header">
+                    <h3>Test Your Physics Knowledge!</h3>
+                    <p>Solve problems as fast as you can to earn bonus XP</p>
+                </div>
+
+                <div class="challenge-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Score:</span>
+                        <span class="stat-value" id="challenge-score">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Streak:</span>
+                        <span class="stat-value" id="challenge-streak">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Time:</span>
+                        <span class="stat-value" id="challenge-timer">0:00</span>
+                    </div>
+                </div>
+
+                <div id="challenge-problem" class="challenge-problem">
+                    <h4 id="problem-text">Click "New Challenge" to start!</h4>
+                    <div id="problem-diagram"></div>
+                    <div class="answer-input">
+                        <label for="answer-input">Your Answer:</label>
+                        <input type="number" id="answer-input" placeholder="Enter answer" step="0.01">
+                        <span id="answer-unit">units</span>
+                    </div>
+                    <div class="challenge-buttons">
+                        <button onclick="checkAnswer()" class="btn-check">Check Answer</button>
+                        <button onclick="newChallenge()" class="btn-new">New Challenge</button>
+                        <button onclick="skipChallenge()" class="btn-skip">Skip (-10 points)</button>
+                    </div>
+                    <div id="challenge-feedback" class="challenge-feedback"></div>
+                </div>
+
+                <div class="challenge-leaderboard">
+                    <h4>Top Scores Today</h4>
+                    <ol id="leaderboard-list">
+                        <li>No scores yet - be the first!</li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+
+        <!-- NEW: Physics Sandbox Section -->
+        <section id="sandbox" class="topic-section">
+            <h2>🔬 Physics Sandbox</h2>
+            <div class="sandbox-container">
+                <div class="sandbox-header">
+                    <h3>Build Your Own Physics Experiment!</h3>
+                    <p>Add objects, apply forces, and observe the results in real-time</p>
+                </div>
+
+                <div class="sandbox-controls">
+                    <div class="control-panel">
+                        <h4>Add Objects</h4>
+                        <button onclick="addSandboxObject('circle')" class="sandbox-btn">⚫ Circle</button>
+                        <button onclick="addSandboxObject('square')" class="sandbox-btn">⬛ Square</button>
+                        <button onclick="addSandboxObject('ramp')" class="sandbox-btn">📐 Ramp</button>
+                        <button onclick="addSandboxObject('spring')" class="sandbox-btn">🌀 Spring</button>
+                    </div>
+
+                    <div class="control-panel">
+                        <h4>Physics Settings</h4>
+                        <label>Gravity: <span id="sandbox-gravity-value">9.8</span> m/s²</label>
+                        <input type="range" id="sandbox-gravity" min="0" max="20" value="9.8" step="0.1">
+
+                        <label>Air Resistance: <span id="sandbox-air-value">0</span></label>
+                        <input type="range" id="sandbox-air" min="0" max="1" value="0" step="0.05">
+
+                        <label>Elasticity: <span id="sandbox-elasticity-value">0.8</span></label>
+                        <input type="range" id="sandbox-elasticity" min="0" max="1" value="0.8" step="0.1">
+                    </div>
+
+                    <div class="control-panel">
+                        <h4>Actions</h4>
+                        <button onclick="startSandbox()" class="sandbox-btn-action">▶️ Start</button>
+                        <button onclick="pauseSandbox()" class="sandbox-btn-action">⏸️ Pause</button>
+                        <button onclick="resetSandbox()" class="sandbox-btn-action">🔄 Reset</button>
+                        <button onclick="clearSandbox()" class="sandbox-btn-action">🗑️ Clear All</button>
+                        <button onclick="exportSandbox()" class="sandbox-btn-action">💾 Save Setup</button>
+                    </div>
+                </div>
+
+                <canvas id="sandbox-canvas" width="800" height="500"></canvas>
+
+                <div class="sandbox-info">
+                    <p>Objects: <span id="sandbox-objects">0</span> | FPS: <span id="sandbox-fps">0</span> | Total Energy: <span id="sandbox-energy">0</span> J</p>
+                    <p class="sandbox-hint">💡 Tip: Click objects to select, drag to move, right-click to apply forces!</p>
+                </div>
+            </div>
+        </section>
     </main>
 
+    <!-- Achievements Modal -->
+    <div id="achievements-modal" class="modal" role="dialog" aria-labelledby="achievements-title" aria-hidden="true">
+        <div class="modal-content">
+            <span class="close" onclick="closeAchievements()" aria-label="Close achievements">&times;</span>
+            <h2 id="achievements-title">🏆 Achievements</h2>
+            <div id="achievements-grid" class="achievements-grid"></div>
+        </div>
+    </div>
+
     <footer>
-        <p>IGCSE Physics Interactive Tool | Cambridge Curriculum | © 2024</p>
+        <p>IGCSE Physics Ultimate Interactive Tool | Cambridge Curriculum | © 2024</p>
+        <p>Made with ❤️ for physics enthusiasts worldwide</p>
     </footer>
 
+    <script src="physics-calculations.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
