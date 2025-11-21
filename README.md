@@ -2,6 +2,21 @@
 
 An interactive web application designed for Cambridge IGCSE Physics students to learn and explore the concepts of Force and Motion through visual simulations and hands-on experimentation.
 
+## ⚠️ IMPORTANT: How to Run This App
+
+**DON'T** just double-click `index.html` - you'll see a blank page!
+
+**DO** follow these simple steps:
+
+1. Make sure you have [Node.js](https://nodejs.org/) installed
+2. Open terminal/command prompt in this folder
+3. Run: `npm start`
+4. The app will automatically open in your browser
+
+**See [SETUP_INSTRUCTIONS.md](SETUP_INSTRUCTIONS.md) for detailed setup help and alternative methods.**
+
+---
+
 ## Features
 
 This comprehensive learning tool covers all major topics in the Force and Motion syllabus:

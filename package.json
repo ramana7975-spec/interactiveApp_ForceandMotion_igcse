@@ -4,6 +4,7 @@
   "description": "Interactive IGCSE Physics Force and Motion App with comprehensive test coverage",
   "main": "app.js",
   "scripts": {
+    "start": "npx http-server -p 8080 -o",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
