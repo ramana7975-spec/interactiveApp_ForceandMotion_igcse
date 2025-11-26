@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IGCSE Physics - DEBUG</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* DEBUG STYLES - Add visible borders */
+        body { border: 5px solid red !important; min-height: 100vh !important; }
+        header { border: 5px solid blue !important; background: #2c3e50 !important; }
+        nav { border: 5px solid green !important; background: #34495e !important; }
+        main { border: 5px solid orange !important; background: white !important; min-height: 500px !important; }
+        .topic-section { border: 3px dashed purple !important; }
+
+        /* Force visibility */
+        header, nav, main, .topic-section {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
+        /* Override text colors for visibility */
+        header * { color: white !important; }
+        nav * { color: white !important; }
+        main { color: black !important; }
+    </style>
+</head>
+<body>
+    <!--Gamification Panel -->
+    <div id="gamification-panel" class="gamification-panel" aria-label="Progress and achievements">
+        <div class="level-display">
+            <span class="level-badge" aria-label="Current level">Level <span id="user-level">1</span></span>
+            <span class="xp-text" aria-label="Experience points"><span id="user-xp">0</span> / <span id="xp-needed">100</span> XP</span>
+        </div>
+        <div class="xp-bar-container" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+            <div id="xp-bar" class="xp-bar"></div>
+        </div>
+        <button id="achievements-btn" class="icon-btn" aria-label="View achievements" title="Achievements">
+            🏆 <span id="achievement-count">0</span>
+        </button>
+        <button id="theme-toggle" class="icon-btn" aria-label="Toggle dark mode" title="Toggle Theme">🌙</button>
+        <button id="sound-toggle" class="icon-btn" aria-label="Toggle sound" title="Toggle Sound">🔊</button>
+    </div>
+
+    <header style="margin-top: 80px;">
+        <h1 style="font-size: 2rem; color: white;">🚀 DEBUG MODE - Can you see this header?</h1>
+        <p style="color: white;">If you can see this text, the header is rendering</p>
+    </header>
+
+    <nav class="topic-nav" role="navigation" aria-label="Main navigation">
+        <button class="nav-btn active">DEBUG: Button 1</button>
+        <button class="nav-btn">DEBUG: Button 2</button>
+        <button class="nav-btn">DEBUG: Button 3</button>
+    </nav>
+
+    <main role="main">
+        <div style="padding: 50px; background: yellow; border: 10px solid red;">
+            <h2 style="font-size: 3rem; color: black;">BIG TEXT - CAN YOU SEE THIS?</h2>
+            <p style="font-size: 2rem; color: black;">If you see this yellow box with red border, the main content area is working!</p>
+            <p style="font-size: 1.5rem; color: black;">The issue might be with the original styling or JavaScript.</p>
+        </div>
+    </main>
+
+    <script>
+        console.log('DEBUG PAGE LOADED');
+        alert('DEBUG: If you see this alert, JavaScript is working!');
+    </script>
+</body>
+</html>

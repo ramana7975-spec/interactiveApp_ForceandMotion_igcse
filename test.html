@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnostic Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 100px 20px 20px 20px;
+            font-family: Arial, sans-serif;
+        }
+        .test-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #3498db;
+            color: white;
+            padding: 10px 20px;
+            z-index: 1000;
+        }
+        .test-header {
+            background: #2c3e50;
+            color: white;
+            padding: 2rem;
+            margin-top: 60px;
+        }
+        .test-content {
+            background: white;
+            padding: 2rem;
+            margin: 2rem auto;
+            max-width: 1200px;
+            border: 2px solid #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-panel">
+        <h3>Test Panel (Similar to Gamification Panel)</h3>
+    </div>
+
+    <header class="test-header">
+        <h1>Test Header</h1>
+        <p>If you can see this, the basic structure works</p>
+    </header>
+
+    <div class="test-content">
+        <h2>Test Content</h2>
+        <p>If you can see this red-bordered box, CSS is loading correctly</p>
+        <button onclick="alert('JavaScript works!')">Click to test JavaScript</button>
+    </div>
+
+    <script>
+        console.log('Diagnostic test loaded successfully');
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM fully loaded');
+        });
+    </script>
+</body>
+</html>
