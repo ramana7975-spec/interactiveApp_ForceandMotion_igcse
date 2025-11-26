@@ -42,17 +42,27 @@ function updateMotionValues() {
     const a = parseFloat(document.getElementById('acceleration')?.value || 0);
     const t = parseFloat(document.getElementById('time-range')?.value || 10);
 
-    document.getElementById('u-value').textContent = u;
-    document.getElementById('a-value').textContent = a;
-    document.getElementById('time-value').textContent = t;
+    // Update display values with null checks
+    const uValueEl = document.getElementById('u-value');
+    const aValueEl = document.getElementById('a-value');
+    const timeValueEl = document.getElementById('time-value');
+
+    if (uValueEl) uValueEl.textContent = u;
+    if (aValueEl) aValueEl.textContent = a;
+    if (timeValueEl) timeValueEl.textContent = t;
 
     // Calculate values using equations of motion
     const v = u + a * t; // v = u + at
     const s = u * t + 0.5 * a * t * t; // s = ut + ½at²
 
-    document.getElementById('final-velocity').textContent = v.toFixed(2);
-    document.getElementById('displacement').textContent = s.toFixed(2);
-    document.getElementById('distance-traveled').textContent = Math.abs(s).toFixed(2);
+    // Update result displays with null checks
+    const finalVelEl = document.getElementById('final-velocity');
+    const displacementEl = document.getElementById('displacement');
+    const distanceTraveledEl = document.getElementById('distance-traveled');
+
+    if (finalVelEl) finalVelEl.textContent = v.toFixed(2);
+    if (displacementEl) displacementEl.textContent = s.toFixed(2);
+    if (distanceTraveledEl) distanceTraveledEl.textContent = Math.abs(s).toFixed(2);
 
     drawMotionGraph();
     showAreaCalculation(u, v, t, s);
@@ -371,12 +381,18 @@ function updateForces() {
     const f2Angle = parseFloat(document.getElementById('force2-angle')?.value || 0);
     const mass = parseFloat(document.getElementById('mass')?.value || 1);
 
-    // Update display values
-    document.getElementById('f1-mag-value').textContent = f1Mag;
-    document.getElementById('f1-angle-value').textContent = f1Angle;
-    document.getElementById('f2-mag-value').textContent = f2Mag;
-    document.getElementById('f2-angle-value').textContent = f2Angle;
-    document.getElementById('mass-value').textContent = mass;
+    // Update display values (with null checks)
+    const f1MagValueEl = document.getElementById('f1-mag-value');
+    const f1AngleValueEl = document.getElementById('f1-angle-value');
+    const f2MagValueEl = document.getElementById('f2-mag-value');
+    const f2AngleValueEl = document.getElementById('f2-angle-value');
+    const massValueEl = document.getElementById('mass-value');
+
+    if (f1MagValueEl) f1MagValueEl.textContent = f1Mag;
+    if (f1AngleValueEl) f1AngleValueEl.textContent = f1Angle;
+    if (f2MagValueEl) f2MagValueEl.textContent = f2Mag;
+    if (f2AngleValueEl) f2AngleValueEl.textContent = f2Angle;
+    if (massValueEl) massValueEl.textContent = mass;
 
     // Convert angles to radians
     const f1AngleRad = f1Angle * Math.PI / 180;
@@ -397,20 +413,32 @@ function updateForces() {
     const angle = Math.atan2(ry, rx) * 180 / Math.PI;
     const acceleration = resultant / mass;
 
-    // Update displays
-    document.getElementById('f1-display').textContent = f1Mag.toFixed(2);
-    document.getElementById('f1x-display').textContent = f1x.toFixed(2);
-    document.getElementById('f1y-display').textContent = f1y.toFixed(2);
+    // Update displays (with null checks to prevent crashes)
+    const f1DisplayEl = document.getElementById('f1-display');
+    const f1xDisplayEl = document.getElementById('f1x-display');
+    const f1yDisplayEl = document.getElementById('f1y-display');
+    const f2DisplayEl = document.getElementById('f2-display');
+    const f2xDisplayEl = document.getElementById('f2x-display');
+    const f2yDisplayEl = document.getElementById('f2y-display');
+    const resultantForceEl = document.getElementById('resultant-force');
+    const forceAngleEl = document.getElementById('force-angle');
+    const rxDisplayEl = document.getElementById('rx-display');
+    const ryDisplayEl = document.getElementById('ry-display');
+    const forceAccelEl = document.getElementById('force-acceleration');
 
-    document.getElementById('f2-display').textContent = f2Mag.toFixed(2);
-    document.getElementById('f2x-display').textContent = f2x.toFixed(2);
-    document.getElementById('f2y-display').textContent = f2y.toFixed(2);
+    if (f1DisplayEl) f1DisplayEl.textContent = f1Mag.toFixed(2);
+    if (f1xDisplayEl) f1xDisplayEl.textContent = f1x.toFixed(2);
+    if (f1yDisplayEl) f1yDisplayEl.textContent = f1y.toFixed(2);
 
-    document.getElementById('resultant-force').textContent = resultant.toFixed(2);
-    document.getElementById('force-angle').textContent = angle.toFixed(2);
-    document.getElementById('rx-display').textContent = rx.toFixed(2);
-    document.getElementById('ry-display').textContent = ry.toFixed(2);
-    document.getElementById('force-acceleration').textContent = acceleration.toFixed(2);
+    if (f2DisplayEl) f2DisplayEl.textContent = f2Mag.toFixed(2);
+    if (f2xDisplayEl) f2xDisplayEl.textContent = f2x.toFixed(2);
+    if (f2yDisplayEl) f2yDisplayEl.textContent = f2y.toFixed(2);
+
+    if (resultantForceEl) resultantForceEl.textContent = resultant.toFixed(2);
+    if (forceAngleEl) forceAngleEl.textContent = angle.toFixed(2);
+    if (rxDisplayEl) rxDisplayEl.textContent = rx.toFixed(2);
+    if (ryDisplayEl) ryDisplayEl.textContent = ry.toFixed(2);
+    if (forceAccelEl) forceAccelEl.textContent = acceleration.toFixed(2);
 
     drawForceVectors();
     showForceCalculation(f1Mag, f1Angle, f2Mag, f2Angle, f1x, f1y, f2x, f2y, rx, ry, resultant, angle, mass, acceleration);
