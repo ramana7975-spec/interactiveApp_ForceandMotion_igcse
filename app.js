@@ -677,12 +677,19 @@ function resetForces() {
 }
 
 // =====================================================
-// MOMENTUM SIMULATION
+// MOMENTUM SIMULATION - Enhanced with Cars & Slow Motion
 // =====================================================
 let collisionAnimating = false;
-let collisionProgress = 0;
-let obj1Pos = 50;
-let obj2Pos = 450;
+let collisionPhase = 'before'; // 'before', 'collision', 'after'
+let obj1Pos = 80;
+let obj2Pos = 520;
+let obj1Vel = 0;
+let obj2Vel = 0;
+let collisionTime = 0;
+let animationSpeed = 0.3; // Much slower for visibility
+let showVelocityVectors = true;
+let showMomentumBars = true;
+let collisionFlashAlpha = 0;
 
 function initMomentum() {
     document.getElementById('mass1')?.addEventListener('input', updateMomentumValues);
@@ -709,8 +716,168 @@ function updateMomentumValues() {
     document.getElementById('initial-momentum').textContent = initialMomentum.toFixed(2);
 
     if (!collisionAnimating) {
+        obj1Vel = v1;
+        obj2Vel = v2;
         drawMomentum();
     }
+}
+
+function drawCar(ctx, x, y, width, height, color, facingRight, mass) {
+    const carHeight = height * 0.6;
+    const wheelRadius = height * 0.2;
+    const bodyY = y - carHeight - wheelRadius;
+
+    // Car shadow
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+    ctx.beginPath();
+    ctx.ellipse(x, y + 5, width * 0.45, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Car body (main rectangle)
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.roundRect(x - width/2, bodyY, width, carHeight, 5);
+    ctx.fill();
+
+    // Car roof/cabin
+    const cabinWidth = width * 0.5;
+    const cabinHeight = carHeight * 0.6;
+    const cabinX = facingRight ? x - width/4 : x - width/4;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.roundRect(cabinX, bodyY - cabinHeight + 5, cabinWidth, cabinHeight, [8, 8, 0, 0]);
+    ctx.fill();
+
+    // Windows
+    ctx.fillStyle = '#85c1e9';
+    const windowWidth = cabinWidth * 0.4;
+    const windowHeight = cabinHeight * 0.5;
+    ctx.beginPath();
+    ctx.roundRect(cabinX + 5, bodyY - cabinHeight + 10, windowWidth, windowHeight, 3);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.roundRect(cabinX + cabinWidth - windowWidth - 5, bodyY - cabinHeight + 10, windowWidth, windowHeight, 3);
+    ctx.fill();
+
+    // Headlights
+    ctx.fillStyle = '#f1c40f';
+    const headlightX = facingRight ? x + width/2 - 8 : x - width/2 + 3;
+    ctx.beginPath();
+    ctx.roundRect(headlightX, bodyY + carHeight * 0.2, 5, 10, 2);
+    ctx.fill();
+
+    // Taillights
+    ctx.fillStyle = '#e74c3c';
+    const taillightX = facingRight ? x - width/2 + 3 : x + width/2 - 8;
+    ctx.beginPath();
+    ctx.roundRect(taillightX, bodyY + carHeight * 0.2, 5, 10, 2);
+    ctx.fill();
+
+    // Wheels
+    ctx.fillStyle = '#2c3e50';
+    const wheel1X = x - width * 0.3;
+    const wheel2X = x + width * 0.3;
+
+    // Wheel 1
+    ctx.beginPath();
+    ctx.arc(wheel1X, y - wheelRadius, wheelRadius, 0, Math.PI * 2);
+    ctx.fill();
+    // Hubcap
+    ctx.fillStyle = '#95a5a6';
+    ctx.beginPath();
+    ctx.arc(wheel1X, y - wheelRadius, wheelRadius * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Wheel 2
+    ctx.fillStyle = '#2c3e50';
+    ctx.beginPath();
+    ctx.arc(wheel2X, y - wheelRadius, wheelRadius, 0, Math.PI * 2);
+    ctx.fill();
+    // Hubcap
+    ctx.fillStyle = '#95a5a6';
+    ctx.beginPath();
+    ctx.arc(wheel2X, y - wheelRadius, wheelRadius * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Mass label on car
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${mass} kg`, x, bodyY + carHeight/2 + 5);
+    ctx.textAlign = 'left';
+}
+
+function drawVelocityArrow(ctx, x, y, velocity, color) {
+    if (Math.abs(velocity) < 0.1) return;
+
+    const arrowLength = Math.abs(velocity) * 8;
+    const arrowHeight = 20;
+    const direction = velocity > 0 ? 1 : -1;
+
+    const startX = x;
+    const endX = x + arrowLength * direction;
+
+    // Arrow shaft
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(startX, y);
+    ctx.lineTo(endX - 15 * direction, y);
+    ctx.stroke();
+
+    // Arrow head
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(endX, y);
+    ctx.lineTo(endX - 15 * direction, y - 8);
+    ctx.lineTo(endX - 15 * direction, y + 8);
+    ctx.closePath();
+    ctx.fill();
+
+    // Velocity label
+    ctx.fillStyle = color;
+    ctx.font = 'bold 12px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(`v = ${velocity.toFixed(1)} m/s`, x + (arrowLength/2) * direction, y - 15);
+    ctx.textAlign = 'left';
+}
+
+function drawMomentumBars(ctx, x, y, width, m1, v1, m2, v2) {
+    const barHeight = 20;
+    const maxMomentum = 100;
+    const p1 = m1 * v1;
+    const p2 = m2 * v2;
+    const totalP = p1 + p2;
+
+    // Background
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+    ctx.fillRect(x, y, width, barHeight * 3 + 30);
+
+    // Title
+    ctx.fillStyle = '#2c3e50';
+    ctx.font = 'bold 12px Arial';
+    ctx.fillText('Momentum (kg·m/s)', x + 5, y + 15);
+
+    // Car 1 momentum bar
+    const bar1Width = Math.min(Math.abs(p1) / maxMomentum * (width - 80), width - 80);
+    ctx.fillStyle = p1 >= 0 ? '#e74c3c' : '#c0392b';
+    ctx.fillRect(x + 70, y + 25, bar1Width * (p1 >= 0 ? 1 : -1), barHeight);
+    ctx.fillStyle = '#2c3e50';
+    ctx.font = '11px Arial';
+    ctx.fillText(`Car 1: ${p1.toFixed(1)}`, x + 5, y + 40);
+
+    // Car 2 momentum bar
+    const bar2Width = Math.min(Math.abs(p2) / maxMomentum * (width - 80), width - 80);
+    ctx.fillStyle = p2 >= 0 ? '#3498db' : '#2980b9';
+    ctx.fillRect(x + 70, y + 50, bar2Width * (p2 >= 0 ? 1 : -1), barHeight);
+    ctx.fillText(`Car 2: ${p2.toFixed(1)}`, x + 5, y + 65);
+
+    // Total momentum bar
+    const totalBarWidth = Math.min(Math.abs(totalP) / maxMomentum * (width - 80), width - 80);
+    ctx.fillStyle = '#27ae60';
+    ctx.fillRect(x + 70, y + 75, totalBarWidth * (totalP >= 0 ? 1 : -1), barHeight);
+    ctx.font = 'bold 11px Arial';
+    ctx.fillText(`Total: ${totalP.toFixed(1)}`, x + 5, y + 90);
 }
 
 function drawMomentum() {
@@ -723,47 +890,138 @@ function drawMomentum() {
 
     ctx.clearRect(0, 0, width, height);
 
-    const m1 = parseFloat(document.getElementById('mass1')?.value || 0);
-    const m2 = parseFloat(document.getElementById('mass2')?.value || 0);
+    const m1 = parseFloat(document.getElementById('mass1')?.value || 5);
+    const m2 = parseFloat(document.getElementById('mass2')?.value || 3);
+    const v1Input = parseFloat(document.getElementById('velocity1')?.value || 8);
+    const v2Input = parseFloat(document.getElementById('velocity2')?.value || -4);
 
-    // Draw ground
-    ctx.strokeStyle = '#2c3e50';
-    ctx.lineWidth = 2;
+    // Use current velocities during animation, input values otherwise
+    const v1 = collisionAnimating ? obj1Vel : v1Input;
+    const v2 = collisionAnimating ? obj2Vel : v2Input;
+
+    const groundY = height - 60;
+
+    // Draw sky gradient
+    const skyGradient = ctx.createLinearGradient(0, 0, 0, groundY);
+    skyGradient.addColorStop(0, '#87CEEB');
+    skyGradient.addColorStop(1, '#E0F6FF');
+    ctx.fillStyle = skyGradient;
+    ctx.fillRect(0, 0, width, groundY);
+
+    // Draw road
+    ctx.fillStyle = '#4a4a4a';
+    ctx.fillRect(0, groundY, width, 60);
+
+    // Road markings
+    ctx.strokeStyle = '#f1c40f';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([30, 20]);
     ctx.beginPath();
-    ctx.moveTo(0, height / 2 + 50);
-    ctx.lineTo(width, height / 2 + 50);
+    ctx.moveTo(0, groundY + 30);
+    ctx.lineTo(width, groundY + 30);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Road edges
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(0, groundY + 2);
+    ctx.lineTo(width, groundY + 2);
+    ctx.moveTo(0, groundY + 58);
+    ctx.lineTo(width, groundY + 58);
     ctx.stroke();
 
-    // Draw object 1
-    const size1 = 20 + m1 * 3;
-    ctx.fillStyle = '#e74c3c';
-    ctx.fillRect(obj1Pos - size1/2, height/2 + 50 - size1, size1, size1);
-    ctx.strokeStyle = '#c0392b';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(obj1Pos - size1/2, height/2 + 50 - size1, size1, size1);
+    // Calculate car sizes based on mass
+    const car1Width = 60 + m1 * 4;
+    const car1Height = 40 + m1 * 2;
+    const car2Width = 60 + m2 * 4;
+    const car2Height = 40 + m2 * 2;
 
-    // Draw object 2
-    const size2 = 20 + m2 * 3;
-    ctx.fillStyle = '#3498db';
-    ctx.fillRect(obj2Pos - size2/2, height/2 + 50 - size2, size2, size2);
-    ctx.strokeStyle = '#2980b9';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(obj2Pos - size2/2, height/2 + 50 - size2, size2, size2);
+    // Collision flash effect
+    if (collisionFlashAlpha > 0) {
+        ctx.fillStyle = `rgba(255, 255, 0, ${collisionFlashAlpha})`;
+        ctx.beginPath();
+        ctx.arc((obj1Pos + obj2Pos) / 2, groundY - 30, 50, 0, Math.PI * 2);
+        ctx.fill();
 
-    // Draw labels
+        // Impact lines
+        ctx.strokeStyle = `rgba(255, 100, 0, ${collisionFlashAlpha})`;
+        ctx.lineWidth = 3;
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const innerR = 30;
+            const outerR = 60;
+            ctx.beginPath();
+            ctx.moveTo((obj1Pos + obj2Pos) / 2 + Math.cos(angle) * innerR,
+                       groundY - 30 + Math.sin(angle) * innerR);
+            ctx.lineTo((obj1Pos + obj2Pos) / 2 + Math.cos(angle) * outerR,
+                       groundY - 30 + Math.sin(angle) * outerR);
+            ctx.stroke();
+        }
+    }
+
+    // Draw cars
+    drawCar(ctx, obj1Pos, groundY, car1Width, car1Height, '#c0392b', true, m1);
+    drawCar(ctx, obj2Pos, groundY, car2Width, car2Height, '#2980b9', false, m2);
+
+    // Draw velocity vectors above cars
+    if (showVelocityVectors) {
+        drawVelocityArrow(ctx, obj1Pos, groundY - car1Height - 50, v1, '#c0392b');
+        drawVelocityArrow(ctx, obj2Pos, groundY - car2Height - 50, v2, '#2980b9');
+    }
+
+    // Draw momentum bars
+    if (showMomentumBars) {
+        drawMomentumBars(ctx, 10, 10, 200, m1, v1, m2, v2);
+    }
+
+    // Phase indicator
     ctx.fillStyle = '#2c3e50';
-    ctx.font = 'bold 12px Arial';
-    ctx.fillText(`m₁=${m1}kg`, obj1Pos - 20, height/2 - 10);
-    ctx.fillText(`m₂=${m2}kg`, obj2Pos - 20, height/2 - 10);
+    ctx.font = 'bold 14px Arial';
+    let phaseText = '';
+    switch(collisionPhase) {
+        case 'before':
+            phaseText = collisionAnimating ? '⏩ Approaching...' : '⏸️ Ready - Click Start';
+            break;
+        case 'collision':
+            phaseText = '💥 COLLISION!';
+            break;
+        case 'after':
+            phaseText = '⏩ After Collision';
+            break;
+    }
+    ctx.fillText(phaseText, width - 180, 25);
+
+    // Draw direction indicators on road
+    if (!collisionAnimating || collisionPhase === 'before') {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.font = '20px Arial';
+        if (v1Input > 0) ctx.fillText('→', obj1Pos + 50, groundY + 35);
+        if (v1Input < 0) ctx.fillText('←', obj1Pos - 60, groundY + 35);
+        if (v2Input > 0) ctx.fillText('→', obj2Pos + 50, groundY + 35);
+        if (v2Input < 0) ctx.fillText('←', obj2Pos - 60, groundY + 35);
+    }
 }
 
 function startCollision() {
     if (collisionAnimating) return;
 
+    const v1 = parseFloat(document.getElementById('velocity1')?.value || 8);
+    const v2 = parseFloat(document.getElementById('velocity2')?.value || -4);
+
     collisionAnimating = true;
-    collisionProgress = 0;
-    obj1Pos = 50;
-    obj2Pos = 450;
+    collisionPhase = 'before';
+    collisionTime = 0;
+    obj1Pos = 80;
+    obj2Pos = 520;
+    obj1Vel = v1;
+    obj2Vel = v2;
+    collisionFlashAlpha = 0;
+
+    // Reset results display
+    document.getElementById('final-momentum').textContent = '—';
+    document.getElementById('momentum-conserved').textContent = '—';
 
     animateCollision();
 }
@@ -772,97 +1030,89 @@ function animateCollision() {
     if (!collisionAnimating) return;
 
     const canvas = document.getElementById('momentum-canvas');
-    const ctx = canvas.getContext('2d');
-    const width = canvas.width;
-    const height = canvas.height;
-
-    const m1 = parseFloat(document.getElementById('mass1')?.value || 0);
-    const v1 = parseFloat(document.getElementById('velocity1')?.value || 0);
-    const m2 = parseFloat(document.getElementById('mass2')?.value || 0);
-    const v2 = parseFloat(document.getElementById('velocity2')?.value || 0);
+    const m1 = parseFloat(document.getElementById('mass1')?.value || 5);
+    const m2 = parseFloat(document.getElementById('mass2')?.value || 3);
     const isElastic = document.getElementById('elastic-collision')?.checked;
 
-    ctx.clearRect(0, 0, width, height);
+    const car1Width = 60 + m1 * 4;
+    const car2Width = 60 + m2 * 4;
+    const collisionDistance = (car1Width + car2Width) / 2;
 
-    // Draw ground
-    ctx.strokeStyle = '#2c3e50';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(0, height / 2 + 50);
-    ctx.lineTo(width, height / 2 + 50);
-    ctx.stroke();
+    collisionTime++;
 
-    const collisionPoint = width / 2;
-    const speed = 2;
-
-    // Before collision
-    if (collisionProgress < 100) {
-        obj1Pos += v1 * speed;
-        obj2Pos += v2 * speed;
-        collisionProgress++;
+    if (collisionPhase === 'before') {
+        // Move cars towards each other (slower speed for visibility)
+        obj1Pos += obj1Vel * animationSpeed;
+        obj2Pos += obj2Vel * animationSpeed;
 
         // Check for collision
-        if (Math.abs(obj1Pos - obj2Pos) < 30) {
-            collisionProgress = 100;
+        if (Math.abs(obj1Pos - obj2Pos) <= collisionDistance) {
+            collisionPhase = 'collision';
+            collisionFlashAlpha = 1.0;
+
+            // Calculate final velocities
+            if (isElastic) {
+                const v1f = ((m1 - m2) * obj1Vel + 2 * m2 * obj2Vel) / (m1 + m2);
+                const v2f = ((m2 - m1) * obj2Vel + 2 * m1 * obj1Vel) / (m1 + m2);
+                obj1Vel = v1f;
+                obj2Vel = v2f;
+            } else {
+                const vf = (m1 * obj1Vel + m2 * obj2Vel) / (m1 + m2);
+                obj1Vel = vf;
+                obj2Vel = vf;
+            }
+
+            // Update final momentum display
+            const finalMomentum = m1 * obj1Vel + m2 * obj2Vel;
+            document.getElementById('final-momentum').textContent = finalMomentum.toFixed(2);
+
+            const v1 = parseFloat(document.getElementById('velocity1')?.value || 8);
+            const v2 = parseFloat(document.getElementById('velocity2')?.value || -4);
+            const initialMomentum = m1 * v1 + m2 * v2;
+            const conserved = Math.abs(finalMomentum - initialMomentum) < 0.1;
+            document.getElementById('momentum-conserved').textContent = conserved ? '✓ Yes' : '✗ No';
+            document.getElementById('momentum-conserved').style.color = conserved ? '#27ae60' : '#e74c3c';
         }
-    } else {
-        // After collision - calculate final velocities
-        let v1f, v2f;
-
-        if (isElastic) {
-            // Elastic collision formulas
-            v1f = ((m1 - m2) * v1 + 2 * m2 * v2) / (m1 + m2);
-            v2f = ((m2 - m1) * v2 + 2 * m1 * v1) / (m1 + m2);
-        } else {
-            // Inelastic collision (objects stick together)
-            v1f = v2f = (m1 * v1 + m2 * v2) / (m1 + m2);
+    } else if (collisionPhase === 'collision') {
+        // Brief pause at collision with flash effect
+        collisionFlashAlpha -= 0.05;
+        if (collisionFlashAlpha <= 0) {
+            collisionFlashAlpha = 0;
+            collisionPhase = 'after';
         }
+    } else if (collisionPhase === 'after') {
+        // Move cars after collision
+        obj1Pos += obj1Vel * animationSpeed;
+        obj2Pos += obj2Vel * animationSpeed;
 
-        obj1Pos += v1f * speed;
-        obj2Pos += v2f * speed;
-
-        // Calculate final momentum
-        const finalMomentum = m1 * v1f + m2 * v2f;
-        document.getElementById('final-momentum').textContent = finalMomentum.toFixed(2);
-
-        const initialMomentum = m1 * v1 + m2 * v2;
-        const conserved = Math.abs(finalMomentum - initialMomentum) < 0.1;
-        document.getElementById('momentum-conserved').textContent = conserved ? 'Yes' : 'No';
-
-        // Stop if objects leave screen
-        if (obj1Pos < -50 || obj1Pos > width + 50 || obj2Pos < -50 || obj2Pos > width + 50) {
+        // Stop when cars leave screen or after some time
+        if (obj1Pos < -100 || obj1Pos > canvas.width + 100 ||
+            obj2Pos < -100 || obj2Pos > canvas.width + 100 ||
+            collisionTime > 500) {
             collisionAnimating = false;
             return;
         }
     }
 
-    // Draw objects
-    const size1 = 20 + m1 * 3;
-    const size2 = 20 + m2 * 3;
-
-    ctx.fillStyle = '#e74c3c';
-    ctx.fillRect(obj1Pos - size1/2, height/2 + 50 - size1, size1, size1);
-    ctx.strokeStyle = '#c0392b';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(obj1Pos - size1/2, height/2 + 50 - size1, size1, size1);
-
-    ctx.fillStyle = '#3498db';
-    ctx.fillRect(obj2Pos - size2/2, height/2 + 50 - size2, size2, size2);
-    ctx.strokeStyle = '#2980b9';
-    ctx.strokeRect(obj2Pos - size2/2, height/2 + 50 - size2, size2, size2);
-
+    drawMomentum();
     requestAnimationFrame(animateCollision);
 }
 
 function resetCollision() {
     collisionAnimating = false;
-    obj1Pos = 50;
-    obj2Pos = 450;
+    collisionPhase = 'before';
+    obj1Pos = 80;
+    obj2Pos = 520;
+    collisionFlashAlpha = 0;
+
     document.getElementById('mass1').value = 5;
     document.getElementById('velocity1').value = 8;
     document.getElementById('mass2').value = 3;
     document.getElementById('velocity2').value = -4;
     document.getElementById('final-momentum').textContent = '0';
+    document.getElementById('momentum-conserved').textContent = '—';
+    document.getElementById('momentum-conserved').style.color = '';
+
     updateMomentumValues();
 }
 

@@ -274,49 +274,80 @@
 
         <!-- Momentum Section -->
         <section id="momentum" class="topic-section">
-            <h2>Momentum</h2>
+            <h2>Momentum & Collisions</h2>
             <div class="content-grid">
                 <div class="explanation">
                     <h3>Key Concepts</h3>
                     <ul>
-                        <li><strong>Momentum:</strong> p = mv (mass × velocity)</li>
+                        <li><strong>Momentum:</strong> p = mv (mass x velocity)</li>
                         <li><strong>Conservation:</strong> Total momentum before = Total momentum after (in isolated system)</li>
-                        <li><strong>Impulse:</strong> Force × Time = Change in momentum</li>
+                        <li><strong>Elastic Collision:</strong> Both momentum AND kinetic energy conserved (cars bounce off)</li>
+                        <li><strong>Inelastic Collision:</strong> Only momentum conserved (cars stick together)</li>
                     </ul>
                     <div class="formula-box">
                         <p><strong>Key Equations:</strong></p>
-                        <p>p = mv</p>
-                        <p>Ft = Δ(mv)</p>
-                        <p>m₁u₁ + m₂u₂ = m₁v₁ + m₂v₂</p>
+                        <p>p = mv (momentum)</p>
+                        <p>m1u1 + m2u2 = m1v1 + m2v2</p>
+                        <p><strong>Elastic:</strong> v1f = ((m1-m2)v1 + 2m2v2)/(m1+m2)</p>
+                        <p><strong>Inelastic:</strong> vf = (m1v1 + m2v2)/(m1+m2)</p>
+                    </div>
+                    <div class="formula-box" style="margin-top: 1rem; border-color: #27ae60;">
+                        <p><strong>How to Use:</strong></p>
+                        <p>1. Set mass and velocity for each car</p>
+                        <p>2. Choose elastic or inelastic collision</p>
+                        <p>3. Click "Start Collision" and watch!</p>
+                        <p>4. Observe the momentum bars - total stays constant!</p>
                     </div>
                 </div>
                 <div class="interactive">
-                    <h3>Collision Simulator</h3>
+                    <h3>Car Collision Simulator</h3>
                     <div class="controls">
-                        <label>Mass 1: <span id="m1-value">5</span> kg</label>
-                        <input type="range" id="mass1" min="1" max="10" value="5" step="0.5">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div style="background: rgba(192, 57, 43, 0.1); padding: 1rem; border-radius: 8px; border-left: 4px solid #c0392b;">
+                                <h4 style="color: #c0392b; margin-bottom: 0.5rem;">Red Car (Car 1)</h4>
+                                <label>Mass: <span id="m1-value">5</span> kg</label>
+                                <input type="range" id="mass1" min="1" max="10" value="5" step="0.5">
+                                <label>Velocity: <span id="v1-value">8</span> m/s <small>(+ = right)</small></label>
+                                <input type="range" id="velocity1" min="-15" max="15" value="8" step="0.5">
+                            </div>
+                            <div style="background: rgba(41, 128, 185, 0.1); padding: 1rem; border-radius: 8px; border-left: 4px solid #2980b9;">
+                                <h4 style="color: #2980b9; margin-bottom: 0.5rem;">Blue Car (Car 2)</h4>
+                                <label>Mass: <span id="m2-value">3</span> kg</label>
+                                <input type="range" id="mass2" min="1" max="10" value="3" step="0.5">
+                                <label>Velocity: <span id="v2-value">-4</span> m/s <small>(- = left)</small></label>
+                                <input type="range" id="velocity2" min="-15" max="15" value="-4" step="0.5">
+                            </div>
+                        </div>
 
-                        <label>Velocity 1: <span id="v1-value">8</span> m/s</label>
-                        <input type="range" id="velocity1" min="0" max="15" value="8" step="0.5">
+                        <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(39, 174, 96, 0.1); border-radius: 8px;">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                <input type="checkbox" id="elastic-collision" checked style="width: 20px; height: 20px;">
+                                <span><strong>Elastic Collision</strong> (uncheck for inelastic - cars stick together)</span>
+                            </label>
+                        </div>
 
-                        <label>Mass 2: <span id="m2-value">3</span> kg</label>
-                        <input type="range" id="mass2" min="1" max="10" value="3" step="0.5">
-
-                        <label>Velocity 2: <span id="v2-value">-4</span> m/s</label>
-                        <input type="range" id="velocity2" min="-15" max="15" value="-4" step="0.5">
-
-                        <label>
-                            <input type="checkbox" id="elastic-collision" checked> Elastic Collision
-                        </label>
-
-                        <button onclick="startCollision()">Start Collision</button>
-                        <button onclick="resetCollision()">Reset</button>
+                        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                            <button onclick="startCollision()" style="flex: 1; background: #27ae60;">Start Collision</button>
+                            <button onclick="resetCollision()" style="flex: 1;">Reset</button>
+                        </div>
                     </div>
-                    <canvas id="momentum-canvas" width="600" height="300"></canvas>
-                    <div class="results">
-                        <p>Initial Momentum: <span id="initial-momentum">0</span> kg·m/s</p>
-                        <p>Final Momentum: <span id="final-momentum">0</span> kg·m/s</p>
-                        <p>Momentum Conserved: <span id="momentum-conserved">Yes</span></p>
+                    <canvas id="momentum-canvas" width="600" height="350"></canvas>
+                    <div class="results" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; text-align: center;">
+                        <div style="background: rgba(52, 152, 219, 0.1); padding: 1rem; border-radius: 8px;">
+                            <p style="font-size: 0.9rem; margin-bottom: 0.5rem;">Initial Momentum</p>
+                            <p style="font-size: 1.5rem; font-weight: bold; color: #3498db;"><span id="initial-momentum">28</span></p>
+                            <p style="font-size: 0.8rem;">kg m/s</p>
+                        </div>
+                        <div style="background: rgba(155, 89, 182, 0.1); padding: 1rem; border-radius: 8px;">
+                            <p style="font-size: 0.9rem; margin-bottom: 0.5rem;">Final Momentum</p>
+                            <p style="font-size: 1.5rem; font-weight: bold; color: #9b59b6;"><span id="final-momentum">--</span></p>
+                            <p style="font-size: 0.8rem;">kg m/s</p>
+                        </div>
+                        <div style="background: rgba(39, 174, 96, 0.1); padding: 1rem; border-radius: 8px;">
+                            <p style="font-size: 0.9rem; margin-bottom: 0.5rem;">Conserved?</p>
+                            <p style="font-size: 1.5rem; font-weight: bold;"><span id="momentum-conserved">--</span></p>
+                            <p style="font-size: 0.8rem;">(should always be yes!)</p>
+                        </div>
                     </div>
                 </div>
             </div>
