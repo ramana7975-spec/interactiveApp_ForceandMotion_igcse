@@ -1,5 +1,5 @@
 // Navigation between topics
-function showTopic(topicId) {
+function showTopic(topicId, evt) {
     // Hide all sections
     const sections = document.querySelectorAll('.topic-section');
     sections.forEach(section => section.classList.remove('active'));
@@ -9,10 +9,23 @@ function showTopic(topicId) {
     buttons.forEach(btn => btn.classList.remove('active'));
 
     // Show selected section
-    document.getElementById(topicId).classList.add('active');
+    const targetSection = document.getElementById(topicId);
+    if (targetSection) {
+        targetSection.classList.add('active');
+    }
 
     // Add active class to clicked button
-    event.target.classList.add('active');
+    // Use evt if passed, otherwise try to get the button by checking which one matches the topicId
+    if (evt && evt.target) {
+        evt.target.classList.add('active');
+    } else {
+        // Fallback: find and activate the correct button
+        buttons.forEach(btn => {
+            if (btn.textContent.toLowerCase().includes(topicId.replace('-', ' ').split(' ')[0])) {
+                btn.classList.add('active');
+            }
+        });
+    }
 }
 
 // =====================================================
@@ -664,12 +677,19 @@ function resetForces() {
 }
 
 // =====================================================
-// MOMENTUM SIMULATION
+// MOMENTUM SIMULATION - Enhanced with Cars & Slow Motion
 // =====================================================
 let collisionAnimating = false;
-let collisionProgress = 0;
-let obj1Pos = 50;
-let obj2Pos = 450;
+let collisionPhase = 'before'; // 'before', 'collision', 'after'
+let obj1Pos = 80;
+let obj2Pos = 520;
+let obj1Vel = 0;
+let obj2Vel = 0;
+let collisionTime = 0;
+let animationSpeed = 0.3; // Much slower for visibility
+let showVelocityVectors = true;
+let showMomentumBars = true;
+let collisionFlashAlpha = 0;
 
 function initMomentum() {
     document.getElementById('mass1')?.addEventListener('input', updateMomentumValues);
@@ -696,8 +716,168 @@ function updateMomentumValues() {
     document.getElementById('initial-momentum').textContent = initialMomentum.toFixed(2);
 
     if (!collisionAnimating) {
+        obj1Vel = v1;
+        obj2Vel = v2;
         drawMomentum();
     }
+}
+
+function drawCar(ctx, x, y, width, height, color, facingRight, mass) {
+    const carHeight = height * 0.6;
+    const wheelRadius = height * 0.2;
+    const bodyY = y - carHeight - wheelRadius;
+
+    // Car shadow
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+    ctx.beginPath();
+    ctx.ellipse(x, y + 5, width * 0.45, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Car body (main rectangle)
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.roundRect(x - width/2, bodyY, width, carHeight, 5);
+    ctx.fill();
+
+    // Car roof/cabin
+    const cabinWidth = width * 0.5;
+    const cabinHeight = carHeight * 0.6;
+    const cabinX = facingRight ? x - width/4 : x - width/4;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.roundRect(cabinX, bodyY - cabinHeight + 5, cabinWidth, cabinHeight, [8, 8, 0, 0]);
+    ctx.fill();
+
+    // Windows
+    ctx.fillStyle = '#85c1e9';
+    const windowWidth = cabinWidth * 0.4;
+    const windowHeight = cabinHeight * 0.5;
+    ctx.beginPath();
+    ctx.roundRect(cabinX + 5, bodyY - cabinHeight + 10, windowWidth, windowHeight, 3);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.roundRect(cabinX + cabinWidth - windowWidth - 5, bodyY - cabinHeight + 10, windowWidth, windowHeight, 3);
+    ctx.fill();
+
+    // Headlights
+    ctx.fillStyle = '#f1c40f';
+    const headlightX = facingRight ? x + width/2 - 8 : x - width/2 + 3;
+    ctx.beginPath();
+    ctx.roundRect(headlightX, bodyY + carHeight * 0.2, 5, 10, 2);
+    ctx.fill();
+
+    // Taillights
+    ctx.fillStyle = '#e74c3c';
+    const taillightX = facingRight ? x - width/2 + 3 : x + width/2 - 8;
+    ctx.beginPath();
+    ctx.roundRect(taillightX, bodyY + carHeight * 0.2, 5, 10, 2);
+    ctx.fill();
+
+    // Wheels
+    ctx.fillStyle = '#2c3e50';
+    const wheel1X = x - width * 0.3;
+    const wheel2X = x + width * 0.3;
+
+    // Wheel 1
+    ctx.beginPath();
+    ctx.arc(wheel1X, y - wheelRadius, wheelRadius, 0, Math.PI * 2);
+    ctx.fill();
+    // Hubcap
+    ctx.fillStyle = '#95a5a6';
+    ctx.beginPath();
+    ctx.arc(wheel1X, y - wheelRadius, wheelRadius * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Wheel 2
+    ctx.fillStyle = '#2c3e50';
+    ctx.beginPath();
+    ctx.arc(wheel2X, y - wheelRadius, wheelRadius, 0, Math.PI * 2);
+    ctx.fill();
+    // Hubcap
+    ctx.fillStyle = '#95a5a6';
+    ctx.beginPath();
+    ctx.arc(wheel2X, y - wheelRadius, wheelRadius * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Mass label on car
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${mass} kg`, x, bodyY + carHeight/2 + 5);
+    ctx.textAlign = 'left';
+}
+
+function drawVelocityArrow(ctx, x, y, velocity, color) {
+    if (Math.abs(velocity) < 0.1) return;
+
+    const arrowLength = Math.abs(velocity) * 8;
+    const arrowHeight = 20;
+    const direction = velocity > 0 ? 1 : -1;
+
+    const startX = x;
+    const endX = x + arrowLength * direction;
+
+    // Arrow shaft
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(startX, y);
+    ctx.lineTo(endX - 15 * direction, y);
+    ctx.stroke();
+
+    // Arrow head
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(endX, y);
+    ctx.lineTo(endX - 15 * direction, y - 8);
+    ctx.lineTo(endX - 15 * direction, y + 8);
+    ctx.closePath();
+    ctx.fill();
+
+    // Velocity label
+    ctx.fillStyle = color;
+    ctx.font = 'bold 12px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(`v = ${velocity.toFixed(1)} m/s`, x + (arrowLength/2) * direction, y - 15);
+    ctx.textAlign = 'left';
+}
+
+function drawMomentumBars(ctx, x, y, width, m1, v1, m2, v2) {
+    const barHeight = 20;
+    const maxMomentum = 100;
+    const p1 = m1 * v1;
+    const p2 = m2 * v2;
+    const totalP = p1 + p2;
+
+    // Background
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+    ctx.fillRect(x, y, width, barHeight * 3 + 30);
+
+    // Title
+    ctx.fillStyle = '#2c3e50';
+    ctx.font = 'bold 12px Arial';
+    ctx.fillText('Momentum (kg·m/s)', x + 5, y + 15);
+
+    // Car 1 momentum bar
+    const bar1Width = Math.min(Math.abs(p1) / maxMomentum * (width - 80), width - 80);
+    ctx.fillStyle = p1 >= 0 ? '#e74c3c' : '#c0392b';
+    ctx.fillRect(x + 70, y + 25, bar1Width * (p1 >= 0 ? 1 : -1), barHeight);
+    ctx.fillStyle = '#2c3e50';
+    ctx.font = '11px Arial';
+    ctx.fillText(`Car 1: ${p1.toFixed(1)}`, x + 5, y + 40);
+
+    // Car 2 momentum bar
+    const bar2Width = Math.min(Math.abs(p2) / maxMomentum * (width - 80), width - 80);
+    ctx.fillStyle = p2 >= 0 ? '#3498db' : '#2980b9';
+    ctx.fillRect(x + 70, y + 50, bar2Width * (p2 >= 0 ? 1 : -1), barHeight);
+    ctx.fillText(`Car 2: ${p2.toFixed(1)}`, x + 5, y + 65);
+
+    // Total momentum bar
+    const totalBarWidth = Math.min(Math.abs(totalP) / maxMomentum * (width - 80), width - 80);
+    ctx.fillStyle = '#27ae60';
+    ctx.fillRect(x + 70, y + 75, totalBarWidth * (totalP >= 0 ? 1 : -1), barHeight);
+    ctx.font = 'bold 11px Arial';
+    ctx.fillText(`Total: ${totalP.toFixed(1)}`, x + 5, y + 90);
 }
 
 function drawMomentum() {
@@ -710,47 +890,138 @@ function drawMomentum() {
 
     ctx.clearRect(0, 0, width, height);
 
-    const m1 = parseFloat(document.getElementById('mass1')?.value || 0);
-    const m2 = parseFloat(document.getElementById('mass2')?.value || 0);
+    const m1 = parseFloat(document.getElementById('mass1')?.value || 5);
+    const m2 = parseFloat(document.getElementById('mass2')?.value || 3);
+    const v1Input = parseFloat(document.getElementById('velocity1')?.value || 8);
+    const v2Input = parseFloat(document.getElementById('velocity2')?.value || -4);
 
-    // Draw ground
-    ctx.strokeStyle = '#2c3e50';
-    ctx.lineWidth = 2;
+    // Use current velocities during animation, input values otherwise
+    const v1 = collisionAnimating ? obj1Vel : v1Input;
+    const v2 = collisionAnimating ? obj2Vel : v2Input;
+
+    const groundY = height - 60;
+
+    // Draw sky gradient
+    const skyGradient = ctx.createLinearGradient(0, 0, 0, groundY);
+    skyGradient.addColorStop(0, '#87CEEB');
+    skyGradient.addColorStop(1, '#E0F6FF');
+    ctx.fillStyle = skyGradient;
+    ctx.fillRect(0, 0, width, groundY);
+
+    // Draw road
+    ctx.fillStyle = '#4a4a4a';
+    ctx.fillRect(0, groundY, width, 60);
+
+    // Road markings
+    ctx.strokeStyle = '#f1c40f';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([30, 20]);
     ctx.beginPath();
-    ctx.moveTo(0, height / 2 + 50);
-    ctx.lineTo(width, height / 2 + 50);
+    ctx.moveTo(0, groundY + 30);
+    ctx.lineTo(width, groundY + 30);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Road edges
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(0, groundY + 2);
+    ctx.lineTo(width, groundY + 2);
+    ctx.moveTo(0, groundY + 58);
+    ctx.lineTo(width, groundY + 58);
     ctx.stroke();
 
-    // Draw object 1
-    const size1 = 20 + m1 * 3;
-    ctx.fillStyle = '#e74c3c';
-    ctx.fillRect(obj1Pos - size1/2, height/2 + 50 - size1, size1, size1);
-    ctx.strokeStyle = '#c0392b';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(obj1Pos - size1/2, height/2 + 50 - size1, size1, size1);
+    // Calculate car sizes based on mass
+    const car1Width = 60 + m1 * 4;
+    const car1Height = 40 + m1 * 2;
+    const car2Width = 60 + m2 * 4;
+    const car2Height = 40 + m2 * 2;
 
-    // Draw object 2
-    const size2 = 20 + m2 * 3;
-    ctx.fillStyle = '#3498db';
-    ctx.fillRect(obj2Pos - size2/2, height/2 + 50 - size2, size2, size2);
-    ctx.strokeStyle = '#2980b9';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(obj2Pos - size2/2, height/2 + 50 - size2, size2, size2);
+    // Collision flash effect
+    if (collisionFlashAlpha > 0) {
+        ctx.fillStyle = `rgba(255, 255, 0, ${collisionFlashAlpha})`;
+        ctx.beginPath();
+        ctx.arc((obj1Pos + obj2Pos) / 2, groundY - 30, 50, 0, Math.PI * 2);
+        ctx.fill();
 
-    // Draw labels
+        // Impact lines
+        ctx.strokeStyle = `rgba(255, 100, 0, ${collisionFlashAlpha})`;
+        ctx.lineWidth = 3;
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const innerR = 30;
+            const outerR = 60;
+            ctx.beginPath();
+            ctx.moveTo((obj1Pos + obj2Pos) / 2 + Math.cos(angle) * innerR,
+                       groundY - 30 + Math.sin(angle) * innerR);
+            ctx.lineTo((obj1Pos + obj2Pos) / 2 + Math.cos(angle) * outerR,
+                       groundY - 30 + Math.sin(angle) * outerR);
+            ctx.stroke();
+        }
+    }
+
+    // Draw cars
+    drawCar(ctx, obj1Pos, groundY, car1Width, car1Height, '#c0392b', true, m1);
+    drawCar(ctx, obj2Pos, groundY, car2Width, car2Height, '#2980b9', false, m2);
+
+    // Draw velocity vectors above cars
+    if (showVelocityVectors) {
+        drawVelocityArrow(ctx, obj1Pos, groundY - car1Height - 50, v1, '#c0392b');
+        drawVelocityArrow(ctx, obj2Pos, groundY - car2Height - 50, v2, '#2980b9');
+    }
+
+    // Draw momentum bars
+    if (showMomentumBars) {
+        drawMomentumBars(ctx, 10, 10, 200, m1, v1, m2, v2);
+    }
+
+    // Phase indicator
     ctx.fillStyle = '#2c3e50';
-    ctx.font = 'bold 12px Arial';
-    ctx.fillText(`m₁=${m1}kg`, obj1Pos - 20, height/2 - 10);
-    ctx.fillText(`m₂=${m2}kg`, obj2Pos - 20, height/2 - 10);
+    ctx.font = 'bold 14px Arial';
+    let phaseText = '';
+    switch(collisionPhase) {
+        case 'before':
+            phaseText = collisionAnimating ? '⏩ Approaching...' : '⏸️ Ready - Click Start';
+            break;
+        case 'collision':
+            phaseText = '💥 COLLISION!';
+            break;
+        case 'after':
+            phaseText = '⏩ After Collision';
+            break;
+    }
+    ctx.fillText(phaseText, width - 180, 25);
+
+    // Draw direction indicators on road
+    if (!collisionAnimating || collisionPhase === 'before') {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.font = '20px Arial';
+        if (v1Input > 0) ctx.fillText('→', obj1Pos + 50, groundY + 35);
+        if (v1Input < 0) ctx.fillText('←', obj1Pos - 60, groundY + 35);
+        if (v2Input > 0) ctx.fillText('→', obj2Pos + 50, groundY + 35);
+        if (v2Input < 0) ctx.fillText('←', obj2Pos - 60, groundY + 35);
+    }
 }
 
 function startCollision() {
     if (collisionAnimating) return;
 
+    const v1 = parseFloat(document.getElementById('velocity1')?.value || 8);
+    const v2 = parseFloat(document.getElementById('velocity2')?.value || -4);
+
     collisionAnimating = true;
-    collisionProgress = 0;
-    obj1Pos = 50;
-    obj2Pos = 450;
+    collisionPhase = 'before';
+    collisionTime = 0;
+    obj1Pos = 80;
+    obj2Pos = 520;
+    obj1Vel = v1;
+    obj2Vel = v2;
+    collisionFlashAlpha = 0;
+
+    // Reset results display
+    document.getElementById('final-momentum').textContent = '—';
+    document.getElementById('momentum-conserved').textContent = '—';
 
     animateCollision();
 }
@@ -759,97 +1030,89 @@ function animateCollision() {
     if (!collisionAnimating) return;
 
     const canvas = document.getElementById('momentum-canvas');
-    const ctx = canvas.getContext('2d');
-    const width = canvas.width;
-    const height = canvas.height;
-
-    const m1 = parseFloat(document.getElementById('mass1')?.value || 0);
-    const v1 = parseFloat(document.getElementById('velocity1')?.value || 0);
-    const m2 = parseFloat(document.getElementById('mass2')?.value || 0);
-    const v2 = parseFloat(document.getElementById('velocity2')?.value || 0);
+    const m1 = parseFloat(document.getElementById('mass1')?.value || 5);
+    const m2 = parseFloat(document.getElementById('mass2')?.value || 3);
     const isElastic = document.getElementById('elastic-collision')?.checked;
 
-    ctx.clearRect(0, 0, width, height);
+    const car1Width = 60 + m1 * 4;
+    const car2Width = 60 + m2 * 4;
+    const collisionDistance = (car1Width + car2Width) / 2;
 
-    // Draw ground
-    ctx.strokeStyle = '#2c3e50';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(0, height / 2 + 50);
-    ctx.lineTo(width, height / 2 + 50);
-    ctx.stroke();
+    collisionTime++;
 
-    const collisionPoint = width / 2;
-    const speed = 2;
-
-    // Before collision
-    if (collisionProgress < 100) {
-        obj1Pos += v1 * speed;
-        obj2Pos += v2 * speed;
-        collisionProgress++;
+    if (collisionPhase === 'before') {
+        // Move cars towards each other (slower speed for visibility)
+        obj1Pos += obj1Vel * animationSpeed;
+        obj2Pos += obj2Vel * animationSpeed;
 
         // Check for collision
-        if (Math.abs(obj1Pos - obj2Pos) < 30) {
-            collisionProgress = 100;
+        if (Math.abs(obj1Pos - obj2Pos) <= collisionDistance) {
+            collisionPhase = 'collision';
+            collisionFlashAlpha = 1.0;
+
+            // Calculate final velocities
+            if (isElastic) {
+                const v1f = ((m1 - m2) * obj1Vel + 2 * m2 * obj2Vel) / (m1 + m2);
+                const v2f = ((m2 - m1) * obj2Vel + 2 * m1 * obj1Vel) / (m1 + m2);
+                obj1Vel = v1f;
+                obj2Vel = v2f;
+            } else {
+                const vf = (m1 * obj1Vel + m2 * obj2Vel) / (m1 + m2);
+                obj1Vel = vf;
+                obj2Vel = vf;
+            }
+
+            // Update final momentum display
+            const finalMomentum = m1 * obj1Vel + m2 * obj2Vel;
+            document.getElementById('final-momentum').textContent = finalMomentum.toFixed(2);
+
+            const v1 = parseFloat(document.getElementById('velocity1')?.value || 8);
+            const v2 = parseFloat(document.getElementById('velocity2')?.value || -4);
+            const initialMomentum = m1 * v1 + m2 * v2;
+            const conserved = Math.abs(finalMomentum - initialMomentum) < 0.1;
+            document.getElementById('momentum-conserved').textContent = conserved ? '✓ Yes' : '✗ No';
+            document.getElementById('momentum-conserved').style.color = conserved ? '#27ae60' : '#e74c3c';
         }
-    } else {
-        // After collision - calculate final velocities
-        let v1f, v2f;
-
-        if (isElastic) {
-            // Elastic collision formulas
-            v1f = ((m1 - m2) * v1 + 2 * m2 * v2) / (m1 + m2);
-            v2f = ((m2 - m1) * v2 + 2 * m1 * v1) / (m1 + m2);
-        } else {
-            // Inelastic collision (objects stick together)
-            v1f = v2f = (m1 * v1 + m2 * v2) / (m1 + m2);
+    } else if (collisionPhase === 'collision') {
+        // Brief pause at collision with flash effect
+        collisionFlashAlpha -= 0.05;
+        if (collisionFlashAlpha <= 0) {
+            collisionFlashAlpha = 0;
+            collisionPhase = 'after';
         }
+    } else if (collisionPhase === 'after') {
+        // Move cars after collision
+        obj1Pos += obj1Vel * animationSpeed;
+        obj2Pos += obj2Vel * animationSpeed;
 
-        obj1Pos += v1f * speed;
-        obj2Pos += v2f * speed;
-
-        // Calculate final momentum
-        const finalMomentum = m1 * v1f + m2 * v2f;
-        document.getElementById('final-momentum').textContent = finalMomentum.toFixed(2);
-
-        const initialMomentum = m1 * v1 + m2 * v2;
-        const conserved = Math.abs(finalMomentum - initialMomentum) < 0.1;
-        document.getElementById('momentum-conserved').textContent = conserved ? 'Yes' : 'No';
-
-        // Stop if objects leave screen
-        if (obj1Pos < -50 || obj1Pos > width + 50 || obj2Pos < -50 || obj2Pos > width + 50) {
+        // Stop when cars leave screen or after some time
+        if (obj1Pos < -100 || obj1Pos > canvas.width + 100 ||
+            obj2Pos < -100 || obj2Pos > canvas.width + 100 ||
+            collisionTime > 500) {
             collisionAnimating = false;
             return;
         }
     }
 
-    // Draw objects
-    const size1 = 20 + m1 * 3;
-    const size2 = 20 + m2 * 3;
-
-    ctx.fillStyle = '#e74c3c';
-    ctx.fillRect(obj1Pos - size1/2, height/2 + 50 - size1, size1, size1);
-    ctx.strokeStyle = '#c0392b';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(obj1Pos - size1/2, height/2 + 50 - size1, size1, size1);
-
-    ctx.fillStyle = '#3498db';
-    ctx.fillRect(obj2Pos - size2/2, height/2 + 50 - size2, size2, size2);
-    ctx.strokeStyle = '#2980b9';
-    ctx.strokeRect(obj2Pos - size2/2, height/2 + 50 - size2, size2, size2);
-
+    drawMomentum();
     requestAnimationFrame(animateCollision);
 }
 
 function resetCollision() {
     collisionAnimating = false;
-    obj1Pos = 50;
-    obj2Pos = 450;
+    collisionPhase = 'before';
+    obj1Pos = 80;
+    obj2Pos = 520;
+    collisionFlashAlpha = 0;
+
     document.getElementById('mass1').value = 5;
     document.getElementById('velocity1').value = 8;
     document.getElementById('mass2').value = 3;
     document.getElementById('velocity2').value = -4;
     document.getElementById('final-momentum').textContent = '0';
+    document.getElementById('momentum-conserved').textContent = '—';
+    document.getElementById('momentum-conserved').style.color = '';
+
     updateMomentumValues();
 }
 
@@ -1266,13 +1529,1206 @@ function resetMoment() {
 }
 
 // =====================================================
+// GAMIFICATION SYSTEM
+// =====================================================
+let userXP = 0;
+let userLevel = 1;
+let xpNeeded = 100;
+let soundEnabled = true;
+let achievements = [];
+
+function initGamification() {
+    // Load saved progress from localStorage
+    const savedXP = localStorage.getItem('physics-xp');
+    const savedLevel = localStorage.getItem('physics-level');
+
+    if (savedXP) userXP = parseInt(savedXP);
+    if (savedLevel) userLevel = parseInt(savedLevel);
+
+    xpNeeded = userLevel * 100;
+    updateXPDisplay();
+
+    // Set up theme toggle
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', toggleTheme);
+    }
+
+    // Set up achievements button
+    const achievementsBtn = document.getElementById('achievements-btn');
+    if (achievementsBtn) {
+        achievementsBtn.addEventListener('click', showAchievements);
+    }
+
+    // Set up sound toggle
+    const soundToggle = document.getElementById('sound-toggle');
+    if (soundToggle) {
+        soundToggle.addEventListener('click', toggleSound);
+    }
+
+    // Load saved theme
+    const savedTheme = localStorage.getItem('physics-theme');
+    if (savedTheme === 'dark') {
+        document.body.classList.add('dark-mode');
+        if (themeToggle) themeToggle.textContent = '☀️';
+    }
+}
+
+function updateXPDisplay() {
+    const xpElement = document.getElementById('user-xp');
+    const levelElement = document.getElementById('user-level');
+    const xpNeededElement = document.getElementById('xp-needed');
+    const xpBar = document.getElementById('xp-bar');
+
+    if (xpElement) xpElement.textContent = userXP;
+    if (levelElement) levelElement.textContent = userLevel;
+    if (xpNeededElement) xpNeededElement.textContent = xpNeeded;
+    if (xpBar) xpBar.style.width = `${(userXP / xpNeeded) * 100}%`;
+}
+
+function addXP(amount) {
+    userXP += amount;
+
+    // Level up check
+    while (userXP >= xpNeeded) {
+        userXP -= xpNeeded;
+        userLevel++;
+        xpNeeded = userLevel * 100;
+        showNotification(`Level Up! You're now Level ${userLevel}!`);
+    }
+
+    // Save progress
+    localStorage.setItem('physics-xp', userXP.toString());
+    localStorage.setItem('physics-level', userLevel.toString());
+
+    updateXPDisplay();
+}
+
+function showNotification(message) {
+    const notification = document.getElementById('achievement-notification');
+    if (notification) {
+        notification.textContent = message;
+        notification.classList.add('show');
+        setTimeout(() => {
+            notification.classList.remove('show');
+        }, 3000);
+    }
+}
+
+function toggleTheme() {
+    document.body.classList.toggle('dark-mode');
+    const themeToggle = document.getElementById('theme-toggle');
+
+    if (document.body.classList.contains('dark-mode')) {
+        if (themeToggle) themeToggle.textContent = '☀️';
+        localStorage.setItem('physics-theme', 'dark');
+    } else {
+        if (themeToggle) themeToggle.textContent = '🌙';
+        localStorage.setItem('physics-theme', 'light');
+    }
+}
+
+function toggleSound() {
+    soundEnabled = !soundEnabled;
+    const soundToggle = document.getElementById('sound-toggle');
+    if (soundToggle) {
+        soundToggle.textContent = soundEnabled ? '🔊' : '🔇';
+    }
+}
+
+function showAchievements() {
+    const modal = document.getElementById('achievements-modal');
+    if (modal) {
+        modal.style.display = 'block';
+        populateAchievements();
+    }
+}
+
+function closeAchievements() {
+    const modal = document.getElementById('achievements-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function populateAchievements() {
+    const grid = document.getElementById('achievements-grid');
+    if (!grid) return;
+
+    const allAchievements = [
+        { id: 'first-sim', icon: '🚀', title: 'First Steps', description: 'Run your first simulation', unlocked: true },
+        { id: 'motion-master', icon: '📈', title: 'Motion Master', description: 'Complete all motion exercises', unlocked: false },
+        { id: 'force-expert', icon: '💪', title: 'Force Expert', description: 'Master resultant forces', unlocked: false },
+        { id: 'momentum-guru', icon: '🎱', title: 'Momentum Guru', description: 'Understand collisions', unlocked: false },
+        { id: 'level-5', icon: '⭐', title: 'Rising Star', description: 'Reach Level 5', unlocked: userLevel >= 5 },
+        { id: 'level-10', icon: '🌟', title: 'Physics Pro', description: 'Reach Level 10', unlocked: userLevel >= 10 }
+    ];
+
+    grid.innerHTML = allAchievements.map(a => `
+        <div class="achievement-card ${a.unlocked ? '' : 'locked'}">
+            <div class="achievement-icon">${a.icon}</div>
+            <div class="achievement-title">${a.title}</div>
+            <div class="achievement-description">${a.description}</div>
+        </div>
+    `).join('');
+}
+
+// =====================================================
+// PROJECTILE MOTION (NEW TOPIC)
+// =====================================================
+let projectileAnimating = false;
+let projectileTime = 0;
+let projectileX = 0;
+let projectileY = 0;
+
+function initProjectile() {
+    const canvas = document.getElementById('projectile-canvas');
+    if (!canvas) return;
+
+    document.getElementById('proj-velocity')?.addEventListener('input', updateProjectileValues);
+    document.getElementById('proj-angle')?.addEventListener('input', updateProjectileValues);
+    document.getElementById('proj-height')?.addEventListener('input', updateProjectileValues);
+
+    updateProjectileValues();
+    drawProjectile();
+}
+
+function updateProjectileValues() {
+    const v0 = parseFloat(document.getElementById('proj-velocity')?.value || 20);
+    const angle = parseFloat(document.getElementById('proj-angle')?.value || 45);
+    const h0 = parseFloat(document.getElementById('proj-height')?.value || 0);
+
+    document.getElementById('proj-velocity-value').textContent = v0;
+    document.getElementById('proj-angle-value').textContent = angle;
+    document.getElementById('proj-height-value').textContent = h0;
+
+    const angleRad = angle * Math.PI / 180;
+    const vx = v0 * Math.cos(angleRad);
+    const vy = v0 * Math.sin(angleRad);
+    const g = 9.8;
+
+    // Calculate flight time (when y = 0)
+    const a = -0.5 * g;
+    const b = vy;
+    const c = h0;
+    const discriminant = b * b - 4 * a * c;
+    const flightTime = discriminant >= 0 ? (-b - Math.sqrt(discriminant)) / (2 * a) : 0;
+
+    const range = vx * flightTime;
+    const maxHeight = h0 + (vy * vy) / (2 * g);
+
+    document.getElementById('proj-range').textContent = range.toFixed(2);
+    document.getElementById('proj-max-height').textContent = maxHeight.toFixed(2);
+    document.getElementById('proj-time').textContent = flightTime.toFixed(2);
+    document.getElementById('proj-vx').textContent = vx.toFixed(2);
+    document.getElementById('proj-vy').textContent = vy.toFixed(2);
+
+    if (!projectileAnimating) {
+        drawProjectile();
+    }
+}
+
+function drawProjectile() {
+    const canvas = document.getElementById('projectile-canvas');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+
+    ctx.clearRect(0, 0, width, height);
+
+    const v0 = parseFloat(document.getElementById('proj-velocity')?.value || 20);
+    const angle = parseFloat(document.getElementById('proj-angle')?.value || 45);
+    const h0 = parseFloat(document.getElementById('proj-height')?.value || 0);
+
+    const angleRad = angle * Math.PI / 180;
+    const vx = v0 * Math.cos(angleRad);
+    const vy = v0 * Math.sin(angleRad);
+    const g = 9.8;
+
+    // Draw ground
+    ctx.strokeStyle = '#27ae60';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(0, height - 30);
+    ctx.lineTo(width, height - 30);
+    ctx.stroke();
+
+    // Draw trajectory
+    ctx.strokeStyle = '#3498db';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+
+    const scale = 5;
+    const startY = height - 30 - h0 * scale;
+
+    for (let t = 0; t <= 10; t += 0.1) {
+        const x = 50 + vx * t * scale;
+        const y = startY - (vy * t - 0.5 * g * t * t) * scale;
+
+        if (y > height - 30) break;
+
+        if (t === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Draw launcher
+    ctx.fillStyle = '#2c3e50';
+    ctx.fillRect(30, startY - 10, 40, 20);
+
+    // Draw current projectile position
+    ctx.fillStyle = '#e74c3c';
+    ctx.beginPath();
+    ctx.arc(50 + projectileX * scale, startY - projectileY * scale, 8, 0, 2 * Math.PI);
+    ctx.fill();
+}
+
+function launchProjectile() {
+    if (projectileAnimating) return;
+
+    projectileAnimating = true;
+    projectileTime = 0;
+    projectileX = 0;
+    projectileY = 0;
+
+    addXP(5);
+    animateProjectile();
+}
+
+function animateProjectile() {
+    if (!projectileAnimating) return;
+
+    const v0 = parseFloat(document.getElementById('proj-velocity')?.value || 20);
+    const angle = parseFloat(document.getElementById('proj-angle')?.value || 45);
+    const h0 = parseFloat(document.getElementById('proj-height')?.value || 0);
+
+    const angleRad = angle * Math.PI / 180;
+    const vx = v0 * Math.cos(angleRad);
+    const vy = v0 * Math.sin(angleRad);
+    const g = 9.8;
+
+    const dt = 0.05;
+    projectileTime += dt;
+
+    projectileX = vx * projectileTime;
+    projectileY = h0 + vy * projectileTime - 0.5 * g * projectileTime * projectileTime;
+
+    drawProjectile();
+
+    if (projectileY < 0) {
+        projectileAnimating = false;
+        projectileY = 0;
+        drawProjectile();
+        return;
+    }
+
+    requestAnimationFrame(animateProjectile);
+}
+
+function loadProjectileScenario(scenario) {
+    const velInput = document.getElementById('proj-velocity');
+    const angleInput = document.getElementById('proj-angle');
+    const heightInput = document.getElementById('proj-height');
+
+    switch(scenario) {
+        case 'basketball':
+            velInput.value = 8;
+            angleInput.value = 50;
+            heightInput.value = 2;
+            break;
+        case 'cannon':
+            velInput.value = 40;
+            angleInput.value = 45;
+            heightInput.value = 1;
+            break;
+        case 'rocket':
+            velInput.value = 50;
+            angleInput.value = 75;
+            heightInput.value = 0;
+            break;
+    }
+
+    updateProjectileValues();
+}
+
+function resetProjectile() {
+    projectileAnimating = false;
+    projectileTime = 0;
+    projectileX = 0;
+    projectileY = 0;
+
+    document.getElementById('proj-velocity').value = 20;
+    document.getElementById('proj-angle').value = 45;
+    document.getElementById('proj-height').value = 0;
+
+    updateProjectileValues();
+}
+
+// =====================================================
+// ENERGY & POWER (NEW TOPIC)
+// =====================================================
+let rollerCoasterAnimating = false;
+let rollerCoasterPosition = 0;
+let rollerCoasterVelocity = 0;
+
+function initEnergy() {
+    const canvas = document.getElementById('energy-canvas');
+    if (!canvas) return;
+
+    document.getElementById('cart-mass')?.addEventListener('input', updateEnergyValues);
+    document.getElementById('start-height')?.addEventListener('input', updateEnergyValues);
+    document.getElementById('friction')?.addEventListener('input', updateEnergyValues);
+
+    updateEnergyValues();
+    drawEnergy();
+}
+
+function updateEnergyValues() {
+    const mass = parseFloat(document.getElementById('cart-mass')?.value || 500);
+    const height = parseFloat(document.getElementById('start-height')?.value || 30);
+    const friction = parseFloat(document.getElementById('friction')?.value || 0.05);
+
+    document.getElementById('cart-mass-value').textContent = mass;
+    document.getElementById('start-height-value').textContent = height;
+    document.getElementById('friction-value').textContent = friction;
+
+    const g = 9.8;
+    const pe = mass * g * height;
+    const ke = 0;
+    const total = pe + ke;
+
+    document.getElementById('pe-value').textContent = pe.toFixed(0);
+    document.getElementById('ke-value').textContent = ke.toFixed(0);
+    document.getElementById('total-energy').textContent = total.toFixed(0);
+    document.getElementById('energy-velocity').textContent = '0';
+    document.getElementById('energy-height').textContent = height.toFixed(1);
+
+    if (!rollerCoasterAnimating) {
+        drawEnergy();
+    }
+}
+
+function drawEnergy() {
+    const canvas = document.getElementById('energy-canvas');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+
+    ctx.clearRect(0, 0, width, height);
+
+    // Draw track (simplified roller coaster track)
+    ctx.strokeStyle = '#95a5a6';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(50, 100);
+    ctx.lineTo(150, 350);
+    ctx.lineTo(300, 200);
+    ctx.lineTo(450, 350);
+    ctx.lineTo(600, 250);
+    ctx.lineTo(680, 350);
+    ctx.stroke();
+
+    // Draw cart
+    const cartX = 50 + rollerCoasterPosition * 6;
+    const cartY = getTrackHeight(rollerCoasterPosition);
+
+    ctx.fillStyle = '#e74c3c';
+    ctx.fillRect(cartX - 15, cartY - 20, 30, 20);
+    ctx.strokeStyle = '#c0392b';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(cartX - 15, cartY - 20, 30, 20);
+
+    // Draw energy bars
+    const mass = parseFloat(document.getElementById('cart-mass')?.value || 500);
+    const startHeight = parseFloat(document.getElementById('start-height')?.value || 30);
+    const g = 9.8;
+    const totalEnergy = mass * g * startHeight;
+
+    const currentHeight = (350 - cartY) / 8;
+    const pe = mass * g * Math.max(0, currentHeight);
+    const ke = totalEnergy - pe;
+
+    // PE bar
+    ctx.fillStyle = '#3498db';
+    ctx.fillRect(width - 80, 50, 25, Math.max(0, (pe / totalEnergy) * 200));
+
+    // KE bar
+    ctx.fillStyle = '#e74c3c';
+    ctx.fillRect(width - 45, 50, 25, Math.max(0, (ke / totalEnergy) * 200));
+
+    ctx.fillStyle = '#2c3e50';
+    ctx.font = '12px Arial';
+    ctx.fillText('PE', width - 75, 270);
+    ctx.fillText('KE', width - 40, 270);
+}
+
+function getTrackHeight(position) {
+    // Simplified track height function
+    const trackPoints = [
+        { x: 0, y: 100 },
+        { x: 17, y: 350 },
+        { x: 42, y: 200 },
+        { x: 67, y: 350 },
+        { x: 92, y: 250 },
+        { x: 105, y: 350 }
+    ];
+
+    for (let i = 0; i < trackPoints.length - 1; i++) {
+        if (position >= trackPoints[i].x && position < trackPoints[i + 1].x) {
+            const t = (position - trackPoints[i].x) / (trackPoints[i + 1].x - trackPoints[i].x);
+            return trackPoints[i].y + t * (trackPoints[i + 1].y - trackPoints[i].y);
+        }
+    }
+    return 350;
+}
+
+function startRollerCoaster() {
+    if (rollerCoasterAnimating) return;
+
+    rollerCoasterAnimating = true;
+    rollerCoasterPosition = 0;
+    rollerCoasterVelocity = 0;
+
+    addXP(5);
+    animateRollerCoaster();
+}
+
+function animateRollerCoaster() {
+    if (!rollerCoasterAnimating) return;
+
+    rollerCoasterPosition += 0.5;
+
+    const mass = parseFloat(document.getElementById('cart-mass')?.value || 500);
+    const startHeight = parseFloat(document.getElementById('start-height')?.value || 30);
+    const friction = parseFloat(document.getElementById('friction')?.value || 0.05);
+    const g = 9.8;
+
+    const currentHeight = Math.max(0, (350 - getTrackHeight(rollerCoasterPosition)) / 8);
+    const totalEnergy = mass * g * startHeight * (1 - friction * rollerCoasterPosition / 100);
+    const pe = mass * g * currentHeight;
+    const ke = Math.max(0, totalEnergy - pe);
+    const velocity = Math.sqrt(2 * ke / mass);
+
+    document.getElementById('pe-value').textContent = pe.toFixed(0);
+    document.getElementById('ke-value').textContent = ke.toFixed(0);
+    document.getElementById('total-energy').textContent = (pe + ke).toFixed(0);
+    document.getElementById('energy-velocity').textContent = velocity.toFixed(1);
+    document.getElementById('energy-height').textContent = currentHeight.toFixed(1);
+
+    drawEnergy();
+
+    if (rollerCoasterPosition > 105) {
+        rollerCoasterAnimating = false;
+        return;
+    }
+
+    requestAnimationFrame(animateRollerCoaster);
+}
+
+function resetRollerCoaster() {
+    rollerCoasterAnimating = false;
+    rollerCoasterPosition = 0;
+    rollerCoasterVelocity = 0;
+
+    document.getElementById('cart-mass').value = 500;
+    document.getElementById('start-height').value = 30;
+    document.getElementById('friction').value = 0.05;
+
+    updateEnergyValues();
+}
+
+// =====================================================
+// CIRCULAR MOTION (NEW TOPIC)
+// =====================================================
+let orbitAnimating = false;
+let orbitAngle = 0;
+
+function initCircular() {
+    const canvas = document.getElementById('circular-canvas');
+    if (!canvas) return;
+
+    document.getElementById('orbit-radius')?.addEventListener('input', updateOrbitValues);
+    document.getElementById('sat-mass')?.addEventListener('input', updateOrbitValues);
+    document.getElementById('central-mass')?.addEventListener('input', updateOrbitValues);
+
+    updateOrbitValues();
+    drawOrbit();
+}
+
+function updateOrbitValues() {
+    const radius = parseFloat(document.getElementById('orbit-radius')?.value || 400) * 1000; // km to m
+    const satMass = parseFloat(document.getElementById('sat-mass')?.value || 1000);
+    const centralMass = parseFloat(document.getElementById('central-mass')?.value || 5.97) * 1e24;
+
+    document.getElementById('orbit-radius-value').textContent = document.getElementById('orbit-radius')?.value || 400;
+    document.getElementById('sat-mass-value').textContent = document.getElementById('sat-mass')?.value || 1000;
+    document.getElementById('central-mass-value').textContent = document.getElementById('central-mass')?.value || 5.97;
+
+    const G = 6.674e-11;
+    const orbitalRadius = 6.371e6 + radius; // Earth radius + altitude
+
+    const orbitalVelocity = Math.sqrt(G * centralMass / orbitalRadius);
+    const centripetalForce = satMass * orbitalVelocity * orbitalVelocity / orbitalRadius;
+    const period = 2 * Math.PI * orbitalRadius / orbitalVelocity / 60; // minutes
+    const angularVelocity = orbitalVelocity / orbitalRadius;
+
+    document.getElementById('orbital-velocity').textContent = orbitalVelocity.toFixed(0);
+    document.getElementById('centripetal-force').textContent = centripetalForce.toFixed(2);
+    document.getElementById('orbit-period').textContent = period.toFixed(1);
+    document.getElementById('angular-velocity').textContent = angularVelocity.toExponential(3);
+
+    if (!orbitAnimating) {
+        drawOrbit();
+    }
+}
+
+function drawOrbit() {
+    const canvas = document.getElementById('circular-canvas');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+
+    ctx.clearRect(0, 0, width, height);
+
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const orbitRadius = 150;
+
+    // Draw Earth
+    ctx.fillStyle = '#3498db';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 50, 0, 2 * Math.PI);
+    ctx.fill();
+
+    // Draw continents (simplified)
+    ctx.fillStyle = '#27ae60';
+    ctx.beginPath();
+    ctx.arc(centerX - 10, centerY - 10, 15, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(centerX + 15, centerY + 5, 12, 0, 2 * Math.PI);
+    ctx.fill();
+
+    // Draw orbit path
+    ctx.strokeStyle = '#95a5a6';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, orbitRadius, 0, 2 * Math.PI);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Draw satellite
+    const satX = centerX + orbitRadius * Math.cos(orbitAngle);
+    const satY = centerY + orbitRadius * Math.sin(orbitAngle);
+
+    ctx.fillStyle = '#e74c3c';
+    ctx.fillRect(satX - 10, satY - 5, 20, 10);
+
+    // Solar panels
+    ctx.fillStyle = '#3498db';
+    ctx.fillRect(satX - 20, satY - 3, 8, 6);
+    ctx.fillRect(satX + 12, satY - 3, 8, 6);
+
+    // Draw velocity vector
+    const vAngle = orbitAngle + Math.PI / 2;
+    drawArrow(ctx, satX, satY, satX + 40 * Math.cos(vAngle), satY + 40 * Math.sin(vAngle), '#27ae60', 'v');
+
+    // Draw centripetal force
+    drawArrow(ctx, satX, satY, satX - 30 * Math.cos(orbitAngle), satY - 30 * Math.sin(orbitAngle), '#e74c3c', 'F');
+}
+
+function startOrbit() {
+    if (orbitAnimating) return;
+
+    orbitAnimating = true;
+    orbitAngle = 0;
+
+    addXP(5);
+    animateOrbit();
+}
+
+function animateOrbit() {
+    if (!orbitAnimating) return;
+
+    orbitAngle += 0.02;
+
+    drawOrbit();
+
+    if (orbitAngle > 2 * Math.PI) {
+        orbitAngle = 0;
+    }
+
+    requestAnimationFrame(animateOrbit);
+}
+
+function loadOrbitScenario(scenario) {
+    const radiusInput = document.getElementById('orbit-radius');
+    const massInput = document.getElementById('sat-mass');
+
+    switch(scenario) {
+        case 'iss':
+            radiusInput.value = 400;
+            massInput.value = 420000;
+            break;
+        case 'moon':
+            radiusInput.value = 384400;
+            massInput.value = 7.35e22;
+            break;
+        case 'gps':
+            radiusInput.value = 20200;
+            massInput.value = 2000;
+            break;
+    }
+
+    updateOrbitValues();
+}
+
+function resetOrbit() {
+    orbitAnimating = false;
+    orbitAngle = 0;
+
+    document.getElementById('orbit-radius').value = 400;
+    document.getElementById('sat-mass').value = 1000;
+    document.getElementById('central-mass').value = 5.97;
+
+    updateOrbitValues();
+}
+
+// =====================================================
+// FRICTION (NEW TOPIC)
+// =====================================================
+let frictionAnimating = false;
+let frictionPosition = 50;
+let frictionVelocity = 0;
+
+function initFriction() {
+    const canvas = document.getElementById('friction-canvas');
+    if (!canvas) return;
+
+    document.getElementById('friction-mass')?.addEventListener('input', updateFrictionValues);
+    document.getElementById('applied-force')?.addEventListener('input', updateFrictionValues);
+    document.getElementById('mu')?.addEventListener('input', updateFrictionValues);
+
+    updateFrictionValues();
+    drawFriction();
+}
+
+function updateFrictionValues() {
+    const mass = parseFloat(document.getElementById('friction-mass')?.value || 10);
+    const appliedForce = parseFloat(document.getElementById('applied-force')?.value || 0);
+    const mu = parseFloat(document.getElementById('mu')?.value || 0.4);
+
+    document.getElementById('friction-mass-value').textContent = mass;
+    document.getElementById('applied-force-value').textContent = appliedForce;
+    document.getElementById('mu-value').textContent = mu;
+
+    const g = 9.8;
+    const normalForce = mass * g;
+    const maxStaticFriction = mu * normalForce;
+    const kineticFriction = 0.8 * mu * normalForce; // kinetic is typically less
+
+    document.getElementById('normal-force').textContent = normalForce.toFixed(2);
+    document.getElementById('static-friction').textContent = maxStaticFriction.toFixed(2);
+    document.getElementById('kinetic-friction').textContent = kineticFriction.toFixed(2);
+
+    const isMoving = appliedForce > maxStaticFriction;
+    const netForce = isMoving ? appliedForce - kineticFriction : 0;
+
+    document.getElementById('net-force-friction').textContent = netForce.toFixed(2);
+    document.getElementById('friction-status').textContent = isMoving ? 'Moving' : 'At Rest';
+    document.getElementById('friction-status').className = isMoving ? 'unbalanced' : 'balanced';
+
+    if (!frictionAnimating) {
+        drawFriction();
+    }
+}
+
+function drawFriction() {
+    const canvas = document.getElementById('friction-canvas');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+
+    ctx.clearRect(0, 0, width, height);
+
+    // Draw ground/surface
+    ctx.fillStyle = '#d35400';
+    ctx.fillRect(0, height - 50, width, 50);
+
+    // Draw surface texture
+    ctx.strokeStyle = '#c0392b';
+    ctx.lineWidth = 2;
+    for (let x = 0; x < width; x += 20) {
+        ctx.beginPath();
+        ctx.moveTo(x, height - 50);
+        ctx.lineTo(x + 10, height);
+        ctx.stroke();
+    }
+
+    // Draw object
+    const mass = parseFloat(document.getElementById('friction-mass')?.value || 10);
+    const objSize = 40 + mass;
+
+    ctx.fillStyle = '#3498db';
+    ctx.fillRect(frictionPosition, height - 50 - objSize, objSize, objSize);
+    ctx.strokeStyle = '#2980b9';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(frictionPosition, height - 50 - objSize, objSize, objSize);
+
+    // Draw applied force arrow
+    const appliedForce = parseFloat(document.getElementById('applied-force')?.value || 0);
+    if (appliedForce > 0) {
+        const forceScale = 0.5;
+        drawArrow(ctx, frictionPosition, height - 50 - objSize / 2,
+                  frictionPosition + appliedForce * forceScale, height - 50 - objSize / 2,
+                  '#27ae60', `F=${appliedForce}N`);
+    }
+
+    // Draw friction arrow
+    const mu = parseFloat(document.getElementById('mu')?.value || 0.4);
+    const normalForce = mass * 9.8;
+    const frictionForce = Math.min(appliedForce, mu * normalForce);
+    if (frictionForce > 0) {
+        const forceScale = 0.5;
+        drawArrow(ctx, frictionPosition + objSize, height - 50 - objSize / 2,
+                  frictionPosition + objSize - frictionForce * forceScale, height - 50 - objSize / 2,
+                  '#e74c3c', `f=${frictionForce.toFixed(1)}N`);
+    }
+}
+
+function applyFrictionForce() {
+    if (frictionAnimating) return;
+
+    const mass = parseFloat(document.getElementById('friction-mass')?.value || 10);
+    const appliedForce = parseFloat(document.getElementById('applied-force')?.value || 0);
+    const mu = parseFloat(document.getElementById('mu')?.value || 0.4);
+
+    const normalForce = mass * 9.8;
+    const maxStaticFriction = mu * normalForce;
+
+    if (appliedForce > maxStaticFriction) {
+        frictionAnimating = true;
+        addXP(5);
+        animateFriction();
+    }
+}
+
+function animateFriction() {
+    if (!frictionAnimating) return;
+
+    const canvas = document.getElementById('friction-canvas');
+    const mass = parseFloat(document.getElementById('friction-mass')?.value || 10);
+    const appliedForce = parseFloat(document.getElementById('applied-force')?.value || 0);
+    const mu = parseFloat(document.getElementById('mu')?.value || 0.4);
+
+    const normalForce = mass * 9.8;
+    const kineticFriction = 0.8 * mu * normalForce;
+    const netForce = appliedForce - kineticFriction;
+    const acceleration = netForce / mass;
+
+    frictionVelocity += acceleration * 0.05;
+    frictionPosition += frictionVelocity;
+
+    drawFriction();
+
+    if (frictionPosition > canvas.width - 100) {
+        frictionAnimating = false;
+        return;
+    }
+
+    requestAnimationFrame(animateFriction);
+}
+
+function loadSurface(surface) {
+    const muInput = document.getElementById('mu');
+
+    switch(surface) {
+        case 'ice':
+            muInput.value = 0.1;
+            break;
+        case 'wood':
+            muInput.value = 0.4;
+            break;
+        case 'rubber':
+            muInput.value = 0.8;
+            break;
+    }
+
+    updateFrictionValues();
+}
+
+function resetFriction() {
+    frictionAnimating = false;
+    frictionPosition = 50;
+    frictionVelocity = 0;
+
+    document.getElementById('friction-mass').value = 10;
+    document.getElementById('applied-force').value = 0;
+    document.getElementById('mu').value = 0.4;
+
+    updateFrictionValues();
+}
+
+// =====================================================
+// CHALLENGE MODE (NEW TOPIC)
+// =====================================================
+let challengeScore = 0;
+let challengeStreak = 0;
+let currentChallenge = null;
+let challengeTimer = null;
+let challengeSeconds = 0;
+
+function initChallenge() {
+    updateChallengeDisplay();
+}
+
+function updateChallengeDisplay() {
+    document.getElementById('challenge-score').textContent = challengeScore;
+    document.getElementById('challenge-streak').textContent = challengeStreak;
+}
+
+function newChallenge() {
+    // Stop previous timer
+    if (challengeTimer) {
+        clearInterval(challengeTimer);
+    }
+
+    const challenges = [
+        {
+            text: 'A car accelerates from 10 m/s to 30 m/s in 5 seconds. What is its acceleration?',
+            answer: 4,
+            unit: 'm/s²',
+            tolerance: 0.1
+        },
+        {
+            text: 'A 5 kg object experiences a 20 N force. What is the acceleration?',
+            answer: 4,
+            unit: 'm/s²',
+            tolerance: 0.1
+        },
+        {
+            text: 'Calculate the momentum of a 2 kg ball moving at 8 m/s.',
+            answer: 16,
+            unit: 'kg·m/s',
+            tolerance: 0.1
+        },
+        {
+            text: 'A 10 N force acts 2 m from a pivot. What is the moment?',
+            answer: 20,
+            unit: 'N·m',
+            tolerance: 0.1
+        },
+        {
+            text: 'What is the weight of a 50 kg person? (g = 9.8 m/s²)',
+            answer: 490,
+            unit: 'N',
+            tolerance: 1
+        }
+    ];
+
+    currentChallenge = challenges[Math.floor(Math.random() * challenges.length)];
+
+    document.getElementById('problem-text').textContent = currentChallenge.text;
+    document.getElementById('answer-unit').textContent = currentChallenge.unit;
+    document.getElementById('answer-input').value = '';
+    document.getElementById('challenge-feedback').textContent = '';
+    document.getElementById('challenge-feedback').className = 'challenge-feedback';
+
+    // Start timer
+    challengeSeconds = 0;
+    challengeTimer = setInterval(() => {
+        challengeSeconds++;
+        const mins = Math.floor(challengeSeconds / 60);
+        const secs = challengeSeconds % 60;
+        document.getElementById('challenge-timer').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+    }, 1000);
+}
+
+function checkAnswer() {
+    if (!currentChallenge) {
+        document.getElementById('challenge-feedback').textContent = 'Click "New Challenge" first!';
+        return;
+    }
+
+    const userAnswer = parseFloat(document.getElementById('answer-input').value);
+    const feedback = document.getElementById('challenge-feedback');
+
+    if (isNaN(userAnswer)) {
+        feedback.textContent = 'Please enter a valid number!';
+        feedback.style.background = '#f39c12';
+        feedback.style.color = 'white';
+        return;
+    }
+
+    if (Math.abs(userAnswer - currentChallenge.answer) <= currentChallenge.tolerance) {
+        // Correct!
+        const timeBonus = Math.max(0, 30 - challengeSeconds);
+        const points = 10 + timeBonus + (challengeStreak * 2);
+        challengeScore += points;
+        challengeStreak++;
+
+        feedback.textContent = `Correct! +${points} points (Time bonus: ${timeBonus})`;
+        feedback.style.background = '#27ae60';
+        feedback.style.color = 'white';
+
+        addXP(points);
+    } else {
+        // Wrong
+        challengeStreak = 0;
+        feedback.textContent = `Incorrect. The answer was ${currentChallenge.answer} ${currentChallenge.unit}`;
+        feedback.style.background = '#e74c3c';
+        feedback.style.color = 'white';
+    }
+
+    clearInterval(challengeTimer);
+    updateChallengeDisplay();
+    currentChallenge = null;
+}
+
+function skipChallenge() {
+    if (!currentChallenge) return;
+
+    challengeScore = Math.max(0, challengeScore - 10);
+    challengeStreak = 0;
+
+    document.getElementById('challenge-feedback').textContent = 'Skipped! -10 points';
+    document.getElementById('challenge-feedback').style.background = '#f39c12';
+    document.getElementById('challenge-feedback').style.color = 'white';
+
+    clearInterval(challengeTimer);
+    updateChallengeDisplay();
+    currentChallenge = null;
+}
+
+// =====================================================
+// PHYSICS SANDBOX (NEW TOPIC)
+// =====================================================
+let sandboxObjects = [];
+let sandboxRunning = false;
+let sandboxAnimationId = null;
+
+function initSandbox() {
+    const canvas = document.getElementById('sandbox-canvas');
+    if (!canvas) return;
+
+    document.getElementById('sandbox-gravity')?.addEventListener('input', updateSandboxSettings);
+    document.getElementById('sandbox-air')?.addEventListener('input', updateSandboxSettings);
+    document.getElementById('sandbox-elasticity')?.addEventListener('input', updateSandboxSettings);
+
+    updateSandboxSettings();
+    drawSandbox();
+}
+
+function updateSandboxSettings() {
+    const gravity = document.getElementById('sandbox-gravity')?.value || 9.8;
+    const air = document.getElementById('sandbox-air')?.value || 0;
+    const elasticity = document.getElementById('sandbox-elasticity')?.value || 0.8;
+
+    document.getElementById('sandbox-gravity-value').textContent = gravity;
+    document.getElementById('sandbox-air-value').textContent = air;
+    document.getElementById('sandbox-elasticity-value').textContent = elasticity;
+}
+
+function drawSandbox() {
+    const canvas = document.getElementById('sandbox-canvas');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+
+    ctx.clearRect(0, 0, width, height);
+
+    // Draw ground
+    ctx.fillStyle = '#95a5a6';
+    ctx.fillRect(0, height - 20, width, 20);
+
+    // Draw objects
+    sandboxObjects.forEach(obj => {
+        ctx.fillStyle = obj.color;
+
+        if (obj.type === 'circle') {
+            ctx.beginPath();
+            ctx.arc(obj.x, obj.y, obj.size, 0, 2 * Math.PI);
+            ctx.fill();
+        } else if (obj.type === 'square') {
+            ctx.fillRect(obj.x - obj.size / 2, obj.y - obj.size / 2, obj.size, obj.size);
+        } else if (obj.type === 'ramp') {
+            ctx.beginPath();
+            ctx.moveTo(obj.x, obj.y);
+            ctx.lineTo(obj.x + 100, obj.y);
+            ctx.lineTo(obj.x + 100, obj.y - 50);
+            ctx.closePath();
+            ctx.fill();
+        }
+    });
+
+    // Update display
+    document.getElementById('sandbox-objects').textContent = sandboxObjects.length;
+}
+
+function addSandboxObject(type) {
+    const canvas = document.getElementById('sandbox-canvas');
+    const colors = ['#e74c3c', '#3498db', '#27ae60', '#f39c12', '#9b59b6'];
+
+    const obj = {
+        type: type,
+        x: 100 + Math.random() * 300,
+        y: 100,
+        vx: 0,
+        vy: 0,
+        size: type === 'ramp' ? 0 : 20 + Math.random() * 20,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        mass: 1
+    };
+
+    sandboxObjects.push(obj);
+    drawSandbox();
+}
+
+function startSandbox() {
+    if (sandboxRunning) return;
+
+    sandboxRunning = true;
+    addXP(5);
+    animateSandbox();
+}
+
+function animateSandbox() {
+    if (!sandboxRunning) return;
+
+    const canvas = document.getElementById('sandbox-canvas');
+    const gravity = parseFloat(document.getElementById('sandbox-gravity')?.value || 9.8);
+    const air = parseFloat(document.getElementById('sandbox-air')?.value || 0);
+    const elasticity = parseFloat(document.getElementById('sandbox-elasticity')?.value || 0.8);
+
+    const dt = 0.1;
+
+    sandboxObjects.forEach(obj => {
+        if (obj.type === 'ramp') return; // Ramps don't move
+
+        // Apply gravity
+        obj.vy += gravity * dt;
+
+        // Apply air resistance
+        obj.vx *= (1 - air);
+        obj.vy *= (1 - air);
+
+        // Update position
+        obj.x += obj.vx;
+        obj.y += obj.vy;
+
+        // Bounce off floor
+        if (obj.y + obj.size > canvas.height - 20) {
+            obj.y = canvas.height - 20 - obj.size;
+            obj.vy = -obj.vy * elasticity;
+        }
+
+        // Bounce off walls
+        if (obj.x - obj.size < 0 || obj.x + obj.size > canvas.width) {
+            obj.vx = -obj.vx * elasticity;
+            obj.x = Math.max(obj.size, Math.min(canvas.width - obj.size, obj.x));
+        }
+    });
+
+    drawSandbox();
+
+    sandboxAnimationId = requestAnimationFrame(animateSandbox);
+}
+
+function pauseSandbox() {
+    sandboxRunning = false;
+    if (sandboxAnimationId) {
+        cancelAnimationFrame(sandboxAnimationId);
+    }
+}
+
+function resetSandbox() {
+    pauseSandbox();
+    sandboxObjects.forEach(obj => {
+        if (obj.type !== 'ramp') {
+            obj.y = 100;
+            obj.vx = 0;
+            obj.vy = 0;
+        }
+    });
+    drawSandbox();
+}
+
+function clearSandbox() {
+    pauseSandbox();
+    sandboxObjects = [];
+    drawSandbox();
+}
+
+function exportSandbox() {
+    const data = JSON.stringify({
+        objects: sandboxObjects,
+        settings: {
+            gravity: document.getElementById('sandbox-gravity')?.value,
+            air: document.getElementById('sandbox-air')?.value,
+            elasticity: document.getElementById('sandbox-elasticity')?.value
+        }
+    });
+
+    // Create download
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'physics-sandbox.json';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// =====================================================
 // INITIALIZATION
 // =====================================================
 window.addEventListener('load', () => {
+    // Hide the particle canvas if it exists (it's not being used and may cause issues)
+    const particleCanvas = document.getElementById('particle-canvas');
+    if (particleCanvas) {
+        particleCanvas.style.display = 'none';
+    }
+
+    // Initialize gamification
+    initGamification();
+
+    // Initialize original topics
     initMotion();
     initForce();
     initMomentum();
     initTerminalVelocity();
     initCentreOfMass();
     initMoment();
+
+    // Initialize new topics
+    initProjectile();
+    initEnergy();
+    initCircular();
+    initFriction();
+    initChallenge();
+    initSandbox();
+
+    // Close modal when clicking outside
+    window.addEventListener('click', (event) => {
+        const modal = document.getElementById('achievements-modal');
+        if (event.target === modal) {
+            closeAchievements();
+        }
+    });
 });
